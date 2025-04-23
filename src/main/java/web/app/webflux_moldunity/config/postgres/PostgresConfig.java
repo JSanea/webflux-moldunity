@@ -1,4 +1,4 @@
-package web.app.webflux_moldunity.config.postgre;
+package web.app.webflux_moldunity.config.postgres;
 
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -12,7 +12,7 @@ import org.springframework.data.r2dbc.config.AbstractR2dbcConfiguration;
 import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 
 @Configuration
-public class PostgreConfig extends AbstractR2dbcConfiguration {
+public class PostgresConfig extends AbstractR2dbcConfiguration {
     @Value("${postgresql.host}")
     private String host;
 
