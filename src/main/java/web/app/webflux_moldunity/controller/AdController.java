@@ -12,8 +12,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.entity.Ad;
-import web.app.webflux_moldunity.enums.AdSubcategory;
+import web.app.webflux_moldunity.enums.AdType;
 import web.app.webflux_moldunity.service.AdService;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @Slf4j
@@ -33,7 +36,7 @@ public class AdController {
     })
     @GetMapping(value = "/ads/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Ad>> getById(@PathVariable Long id, @RequestParam(value = "type") String subtype) {
-        return Mono.justOrEmpty(AdSubcategory.fromLabel(subtype))
+        return Mono.justOrEmpty(AdType.fromSubcategoryName(subtype))
                 .flatMap(sub -> adService.getById(id, sub.getCategoryType(), sub.getSubcategoryType()))
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
@@ -49,7 +52,7 @@ public class AdController {
             return Mono.just(ResponseEntity.badRequest().body(new Ad()));
         }
 
-        return Mono.justOrEmpty(AdSubcategory.fromLabel(subtype))
+        return Mono.justOrEmpty(AdType.fromSubcategoryName(subtype))
                 .flatMap(sub -> adService.save(ad, sub.getCategoryType(), sub.getSubcategoryType())
                 .map(savedAd -> ResponseEntity.status(HttpStatus.CREATED).body(savedAd)))
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
