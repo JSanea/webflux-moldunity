@@ -28,7 +28,7 @@ public class UserService {
                 .map((row, metadata) -> new User(
                         row.get("username", String.class),
                         row.get("password", String.class),
-                        row.get("role", String.class)
+                        row.get("role",     String.class)
                 ))
                 .one();
     }
