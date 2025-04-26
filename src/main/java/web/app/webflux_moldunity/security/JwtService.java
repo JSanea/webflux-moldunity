@@ -11,4 +11,8 @@ public class JwtService {
 
     @Value("${jwt.token-expiration-minutes}")
     private long tokenExpiration;
+
+    public String generateToken(String username){
+        return null;
+    }
 }

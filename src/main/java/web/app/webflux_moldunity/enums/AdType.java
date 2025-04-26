@@ -12,20 +12,20 @@ import java.util.Arrays;
 import java.util.Optional;
 
 public enum AdType {
-    //************ Transport *******************
+    // ******************* Transport *******************
     CAR(100, "Transport", "Car", Transport.class, Car.class),
 
-    //************ Real Estate *******************
+    // ******************* Real Estate *******************
     APARTMENT(200, "Real-Estate","Apartment", RealEstate.class, Apartment.class),
     HOUSE(    201, "Real-Estate","House",     RealEstate.class, House.class);
 
-    //************ Home Appliances *******************
+    // ******************* Home Appliances *******************
 //    HOME_APPLIANCES(300, "Home-Appliances", Object.class, subcategoryClassType),
 
-    //************ Furniture *******************
+    // ******************* Furniture *******************
 //    FURNITURE(400, "Furniture", Object.class, subcategoryClassType),
 
-    //************ Electronics *******************
+    // ******************* Electronics *******************
 //    ELECTRONICS(500, "Electronics", Object.class, subcategoryClassType),
 //    SERVICE(600, "Service", Object.class, subcategoryClassType),
 //    JOB(700, "Job", Object.class, subcategoryClassType),
