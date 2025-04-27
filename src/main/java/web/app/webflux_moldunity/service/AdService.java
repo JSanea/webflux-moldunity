@@ -7,9 +7,9 @@ import org.springframework.data.relational.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.entity.Ad;
-import web.app.webflux_moldunity.entity.Category;
-import web.app.webflux_moldunity.entity.Subcategory;
+import web.app.webflux_moldunity.entity.ad.Ad;
+import web.app.webflux_moldunity.entity.ad.Category;
+import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.exception.InvalidAdStructureException;
 
 @Service

@@ -4,19 +4,19 @@ package web.app.webflux_moldunity.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.entity.Ad;
+import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.enums.AdType;
 import web.app.webflux_moldunity.service.AdService;
 
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @Slf4j
@@ -47,10 +47,9 @@ public class AdController {
     }
 
     @PostMapping(value = "/ads", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Ad>> add(@RequestBody Ad ad, @RequestParam(value = "type") String subtype) {
-        if (ad.getCategory() == null || ad.getCategory().getSubcategory() == null) {
+    public Mono<ResponseEntity<Ad>> add(@Valid @RequestBody Ad ad, @RequestParam(value = "type") String subtype) {
+        if (ad.getCategory() == null || ad.getCategory().getSubcategory() == null)
             return Mono.just(ResponseEntity.badRequest().body(new Ad()));
-        }
 
         return Mono.justOrEmpty(AdType.fromSubcategoryName(subtype))
                 .flatMap(sub -> adService.save(ad, sub.getCategoryType(), sub.getSubcategoryType())

@@ -1,11 +1,13 @@
 package web.app.webflux_moldunity.entity.real_estate;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
-import web.app.webflux_moldunity.entity.Subcategory;
+import web.app.webflux_moldunity.entity.ad.Subcategory;
 
-@Data
+@Getter
+@Setter
 @Table(value = "houses")
 public class House implements Subcategory {
     @Id

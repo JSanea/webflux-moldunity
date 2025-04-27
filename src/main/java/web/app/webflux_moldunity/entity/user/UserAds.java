@@ -1,7 +1,7 @@
 package web.app.webflux_moldunity.entity.user;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import web.app.webflux_moldunity.entity.Ad;
+import web.app.webflux_moldunity.entity.ad.Ad;
 
 import java.util.List;
 

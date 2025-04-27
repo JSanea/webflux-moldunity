@@ -1,7 +1,7 @@
 package web.app.webflux_moldunity.enums;
 
-import web.app.webflux_moldunity.entity.Category;
-import web.app.webflux_moldunity.entity.Subcategory;
+import web.app.webflux_moldunity.entity.ad.Category;
+import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.entity.real_estate.Apartment;
 import web.app.webflux_moldunity.entity.real_estate.House;
 import web.app.webflux_moldunity.entity.transport.Car;
@@ -13,11 +13,11 @@ import java.util.Optional;
 
 public enum AdType {
     // ******************* Transport *******************
-    CAR(100, "Transport", "Car", Transport.class, Car.class),
+    CAR(100, "Transport",  "Car", Transport.class, Car.class),
 
     // ******************* Real Estate *******************
-    APARTMENT(200, "Real-Estate","Apartment", RealEstate.class, Apartment.class),
-    HOUSE(    201, "Real-Estate","House",     RealEstate.class, House.class);
+    APARTMENT(200, "Real-Estate", "Apartment", RealEstate.class, Apartment.class),
+    HOUSE(    201, "Real-Estate", "House",     RealEstate.class, House.class);
 
     // ******************* Home Appliances *******************
 //    HOME_APPLIANCES(300, "Home-Appliances", Object.class, subcategoryClassType),

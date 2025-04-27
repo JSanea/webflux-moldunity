@@ -1,0 +1,31 @@
+package web.app.webflux_moldunity.entity.ad;
+
+
+import jakarta.validation.constraints.NotEmpty;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@Table(value = "ad_images")
+public class AdImage {
+    @Id
+    private Long id;
+
+    @NotEmpty
+    private String url;
+
+    private LocalDateTime createdAt;
+
+    private Long adId;
+}
+
+
+
+
+
+
