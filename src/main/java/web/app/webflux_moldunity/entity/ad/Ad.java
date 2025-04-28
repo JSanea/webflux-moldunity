@@ -42,13 +42,13 @@ public class Ad {
     @Min(value = 1, message = "Price must be greater than 0")
     private Integer price;
 
-    private Integer views;
+    private Integer views = 0;
 
     private Category category;
 
     private List<AdImage> adImages;
     private LocalDateTime createdAt;
-    private LocalDateTime updateAt;
+    private LocalDateTime updatedAt;
     private LocalDateTime republishedAt;
 
     private Long userId;
@@ -64,7 +64,7 @@ public class Ad {
     public void setDateTimeFields(){
         var t = LocalDateTime.now();
         this.createdAt = t;
-        this.updateAt = t;
+        this.updatedAt = t;
         this.republishedAt = t;
     }
 }
