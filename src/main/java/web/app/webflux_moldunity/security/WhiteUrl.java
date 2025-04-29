@@ -1,14 +1,17 @@
 package web.app.webflux_moldunity.security;
 
-import java.util.List;
+public final class WhiteUrl {
 
+    private WhiteUrl(){}
 
-public class WhiteUrl {
     public static String[] urls(){
         return new String[]{
                 "/login",
                 "/ads/**",
-                "/v3/api-docs"
+                "/v3/api-docs",
+                "/swagger-ui.html",
+                "/swagger-ui/**",
+                "/docs"
         };
     }
 }

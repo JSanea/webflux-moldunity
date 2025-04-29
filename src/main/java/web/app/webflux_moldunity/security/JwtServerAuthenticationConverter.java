@@ -30,7 +30,7 @@ public class JwtServerAuthenticationConverter implements ServerAuthenticationCon
 
     private UserDetails createUserDetails(String token){
         String username = jwtTokenProvider.extractUsername(token);
-        String role = jwtTokenProvider.extractRoles(token);
+        String role = jwtTokenProvider.extractRole(token);
         return User.withUsername(username)
                 .password("")
                 .roles(role)

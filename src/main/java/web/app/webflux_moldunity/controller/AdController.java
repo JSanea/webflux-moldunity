@@ -28,7 +28,7 @@ public class AdController {
         this.adService = adService;
     }
 
-    @Operation(summary = "Get ad by ID", description = "Retrieves an ad with given ID and subtype")
+    @Operation(summary = "Get Ad by ID", description = "Retrieves an Ad with given ID and subtype")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ad found"),
             @ApiResponse(responseCode = "404", description = "Ad not found"),

@@ -29,6 +29,8 @@ public class JwtTokenProvider {
     @Value("${jwt.refresh-token-expiration-days}")
     private Long refreshTokenExpiration;
 
+    private final String CLAIM_ROLE = "role";
+
     public String generateToken(UserDetails userDetails){
         final Date tokenExpiry = Date.from(Instant.now().plus(Duration.ofMinutes(tokenExpiration)));
         return generateToken(Map.of(), userDetails, tokenExpiry);
@@ -43,13 +45,13 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
-                .claim("role", userDetails.getAuthorities()
+                .claim(CLAIM_ROLE, userDetails.getAuthorities()
                         .stream()
                         .map(GrantedAuthority::getAuthority)
                         .toList())
                 .setIssuedAt(Date.from(Instant.now()))
                 .setExpiration(expiration)
-                .signWith(getSigningKey(), SignatureAlgorithm.RS256)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -57,8 +59,8 @@ public class JwtTokenProvider {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public String extractRoles(String token) {
-        return extractClaim(token, claims -> claims.get("roles")).toString();
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get(CLAIM_ROLE)).toString();
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
