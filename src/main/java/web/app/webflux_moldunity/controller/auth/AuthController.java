@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -79,6 +80,26 @@ public class AuthController {
     }
 
     @GetMapping(value = "/refresh")
+    @Tag(name = "Authentication", description = "Endpoints for token management")
+    @Operation(
+            summary = "Refresh JWT access token",
+            description = "Refreshes the JWT access token using a valid refresh token stored in cookies.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Access token successfully refreshed",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = AuthResponse.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "401",
+                            description = "Unauthorized - Refresh token missing or invalid"
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "Internal Server Error"
+                    )
+            }
+    )
     public Mono<ResponseEntity<AuthResponse>> refreshToken(@CookieValue(name = "refresh_token", required = false) String refreshToken){
         if (refreshToken == null) return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
 
