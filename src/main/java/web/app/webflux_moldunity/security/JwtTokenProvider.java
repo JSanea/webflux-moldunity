@@ -29,14 +29,13 @@ public class JwtTokenProvider {
     @Value("${jwt.refresh-token-expiration-days}")
     private Long refreshTokenExpiration;
 
-    private final Date tokenExpiry = Date.from(Instant.now().plus(Duration.ofMinutes(tokenExpiration)));
-    private final Date refreshTokenExpiry = Date.from(Instant.now().plus(Duration.ofDays(refreshTokenExpiration)));
-
     public String generateToken(UserDetails userDetails){
+        final Date tokenExpiry = Date.from(Instant.now().plus(Duration.ofMinutes(tokenExpiration)));
         return generateToken(Map.of(), userDetails, tokenExpiry);
     }
 
     public String generateRefreshToken(UserDetails userDetails){
+        final Date refreshTokenExpiry = Date.from(Instant.now().plus(Duration.ofDays(refreshTokenExpiration)));
         return generateToken(Map.of(), userDetails, refreshTokenExpiry);
     }
 
