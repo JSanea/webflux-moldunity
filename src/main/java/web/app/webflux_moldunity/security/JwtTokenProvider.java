@@ -29,11 +29,18 @@ public class JwtTokenProvider {
     @Value("${jwt.refresh-token-expiration-days}")
     private Long refreshTokenExpiration;
 
+    private final Date tokenExpiry = Date.from(Instant.now().plus(Duration.ofMinutes(tokenExpiration)));
+    private final Date refreshTokenExpiry = Date.from(Instant.now().plus(Duration.ofDays(refreshTokenExpiration)));
+
     public String generateToken(UserDetails userDetails){
-        return generateToken(Map.of(), userDetails);
+        return generateToken(Map.of(), userDetails, tokenExpiry);
     }
 
-    public String generateToken(Map<String, Object> claims, UserDetails userDetails){
+    public String generateRefreshToken(UserDetails userDetails){
+        return generateToken(Map.of(), userDetails, refreshTokenExpiry);
+    }
+
+    public String generateToken(Map<String, Object> claims, UserDetails userDetails, Date expiration){
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
@@ -42,21 +49,7 @@ public class JwtTokenProvider {
                         .map(GrantedAuthority::getAuthority)
                         .toList())
                 .setIssuedAt(Date.from(Instant.now()))
-                .setExpiration(Date.from(Instant.now().plus(Duration.ofMinutes(refreshTokenExpiration))))
-                .signWith(getSigningKey(), SignatureAlgorithm.RS256)
-                .compact();
-    }
-
-    public String generateRefreshToken(Map<String, Object> claims, UserDetails userDetails){
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .claim("role", userDetails.getAuthorities()
-                        .stream()
-                        .map(GrantedAuthority::getAuthority)
-                        .toList())
-                .setIssuedAt(Date.from(Instant.now()))
-                .setExpiration(Date.from(Instant.now().plus(Duration.ofDays(refreshTokenExpiration))))
+                .setExpiration(expiration)
                 .signWith(getSigningKey(), SignatureAlgorithm.RS256)
                 .compact();
     }
