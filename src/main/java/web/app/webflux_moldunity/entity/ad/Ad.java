@@ -4,6 +4,7 @@ package web.app.webflux_moldunity.entity.ad;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -44,18 +45,16 @@ public class Ad {
 
     private Integer views = 0;
 
-    private Category category;
+    @NotNull
+    private Subcategory subcategory;
 
     private List<AdImage> adImages;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime republishedAt;
 
+    @NotNull
     private Long userId;
-
-    public void setCategoryNameFromAdType(AdType type) {
-        this.categoryName = type.getCategoryName();
-    }
 
     public void setSubcategoryNameFromAdType(AdType type){
         this.subcategoryName = type.getSubcategoryName();

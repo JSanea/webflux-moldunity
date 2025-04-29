@@ -14,5 +14,5 @@ public class Apartment implements Subcategory {
     @Id
     private Long id;
 
-    private Long categoryId;
+    private Long AdId;
 }

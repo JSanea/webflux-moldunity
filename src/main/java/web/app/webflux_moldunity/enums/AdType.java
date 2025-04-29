@@ -1,23 +1,22 @@
 package web.app.webflux_moldunity.enums;
 
-import web.app.webflux_moldunity.entity.ad.Category;
 import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.entity.real_estate.Apartment;
 import web.app.webflux_moldunity.entity.real_estate.House;
+import web.app.webflux_moldunity.entity.transport.BusMiniBus;
 import web.app.webflux_moldunity.entity.transport.Car;
-import web.app.webflux_moldunity.entity.transport.Transport;
-import web.app.webflux_moldunity.entity.real_estate.RealEstate;
 
 import java.util.Arrays;
 import java.util.Optional;
 
 public enum AdType {
     // ******************* Transport *******************
-    CAR(100, "Transport",  "Car", Transport.class, Car.class),
+    CAR(100, "Car", Car.class),
+    BUS_MINIBUS(101, "Bus-Minibus", BusMiniBus.class),
 
     // ******************* Real Estate *******************
-    APARTMENT(200, "Real-Estate", "Apartment", RealEstate.class, Apartment.class),
-    HOUSE(    201, "Real-Estate", "House",     RealEstate.class, House.class);
+    APARTMENT(200, "Apartment", Apartment.class),
+    HOUSE(    201, "House", House.class);
 
     // ******************* Home Appliances *******************
 //    HOME_APPLIANCES(300, "Home-Appliances", Object.class, subcategoryClassType),
@@ -29,19 +28,17 @@ public enum AdType {
 //    ELECTRONICS(500, "Electronics", Object.class, subcategoryClassType),
 //    SERVICE(600, "Service", Object.class, subcategoryClassType),
 //    JOB(700, "Job", Object.class, subcategoryClassType),
-//    OTHER(800, "Other", Object.class, subcategoryClassType);
+//    OTHER(800, "Other", Object.class);
 
     private final Integer code;
-    private final String categoryName;
+
     private final String subcategoryName;
-    private final Class<? extends Category> categoryClassType;
+
     private final Class<? extends Subcategory> subcategoryClassType;
 
-    AdType(Integer code, String categoryName, String subcategoryName, Class<? extends Category> classType, Class<? extends Subcategory> subcategoryClassType) {
+    AdType(Integer code, String subcategoryName, Class<? extends Subcategory> subcategoryClassType) {
         this.code = code;
-        this.categoryName = categoryName;
         this.subcategoryName = subcategoryName;
-        this.categoryClassType = classType;
         this.subcategoryClassType = subcategoryClassType;
     }
 
@@ -49,16 +46,8 @@ public enum AdType {
         return this.subcategoryName;
     }
 
-    public String getCategoryName(){
-        return this.categoryName;
-    }
-
     public Integer getCode() {
         return this.code;
-    }
-
-    public Class<? extends Category> getCategoryType() {
-        return categoryClassType;
     }
 
     public Class<? extends Subcategory> getSubcategoryType(){

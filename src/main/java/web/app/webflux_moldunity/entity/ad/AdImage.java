@@ -2,6 +2,7 @@ package web.app.webflux_moldunity.entity.ad;
 
 
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -21,6 +22,7 @@ public class AdImage {
 
     private LocalDateTime createdAt;
 
+    @NotNull
     private Long adId;
 }
 

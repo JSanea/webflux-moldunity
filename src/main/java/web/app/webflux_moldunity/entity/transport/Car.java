@@ -1,6 +1,7 @@
 package web.app.webflux_moldunity.entity.transport;
 
 
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -10,9 +11,12 @@ import web.app.webflux_moldunity.entity.ad.Subcategory;
 @Getter
 @Setter
 @Table(value = "cars")
-public class Car implements Subcategory {
+public class Car extends Vehicle implements Subcategory {
     @Id
     private Long id;
 
-    private Long categoryId;
+    @NotEmpty
+    private String body;
+
+    private Long AdId;
 }

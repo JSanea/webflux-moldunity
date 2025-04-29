@@ -1,6 +1,7 @@
 package web.app.webflux_moldunity.entity.ad;
 
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
@@ -19,10 +20,12 @@ public class FavoriteAd {
     @NotEmpty
     private String username;
 
+    @NotNull
     private Long userId;
 
     private LocalDateTime createdAt;
 
+    @NotNull
     private Long adId;
 }
 

@@ -1,5 +1,6 @@
 package web.app.webflux_moldunity.entity.real_estate;
 
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -13,5 +14,8 @@ public class House implements Subcategory {
     @Id
     private Long id;
 
-    private Long categoryId;
+    @NotEmpty
+    private Integer floors;
+
+    private Long AdId;
 }

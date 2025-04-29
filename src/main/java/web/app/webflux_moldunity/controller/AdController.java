@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +36,7 @@ public class AdController {
     @GetMapping(value = "/ads/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Ad>> getById(@PathVariable Long id, @RequestParam(value = "type") String subtype) {
         return Mono.justOrEmpty(AdType.fromSubcategoryName(subtype))
-                .flatMap(sub -> adService.getById(id, sub.getCategoryType(), sub.getSubcategoryType()))
+                .flatMap(sub -> adService.getById(id, sub.getSubcategoryType()))
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
                 .onErrorResume(e -> {
@@ -47,12 +46,13 @@ public class AdController {
     }
 
     @PostMapping(value = "/ads", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Ad>> add(@Valid @RequestBody Ad ad, @RequestParam(value = "type") String subtype) {
-        if (ad.getCategory() == null || ad.getCategory().getSubcategory() == null)
+    public Mono<ResponseEntity<Ad>> add(@Valid @RequestBody Ad ad,
+                                        @RequestParam(value = "type") String subtype) {
+        if (ad.getSubcategory() == null)
             return Mono.just(ResponseEntity.badRequest().body(new Ad()));
 
         return Mono.justOrEmpty(AdType.fromSubcategoryName(subtype))
-                .flatMap(sub -> adService.save(ad, sub.getCategoryType(), sub.getSubcategoryType())
+                .flatMap(sub -> adService.save(ad, sub.getSubcategoryType())
                 .map(savedAd -> ResponseEntity.status(HttpStatus.CREATED).body(savedAd)))
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
                 .onErrorResume(e -> {

@@ -6,7 +6,7 @@ import web.app.webflux_moldunity.entity.ad.Ad;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public record UserAds(
-        User user,
+public record Profile(
+        UserProfile user,
         List<Ad> ads
 ){}

@@ -7,17 +7,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.security.AuthRequest;
 import web.app.webflux_moldunity.security.AuthResponse;
 import web.app.webflux_moldunity.security.JwtTokenProvider;
+
+import java.time.Duration;
 
 @RestController
 @Slf4j
@@ -44,17 +47,29 @@ public class AuthController {
     public Mono<ResponseEntity<AuthResponse>> login(@RequestBody AuthRequest authRequest){
         return reactiveUserDetailsService.findByUsername(authRequest.username())
                 .filter(u -> passwordEncoder.matches(authRequest.password(), u.getPassword()))
-                .map(jwtTokenProvider::generateToken)
-                .map(AuthResponse::new)
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity
-                        .status(HttpStatus.UNAUTHORIZED)
-                        .body(new AuthResponse(""))))
-                .onErrorResume(ex -> {
-                    log.error("Login error: {}", ex.getMessage(), ex);
-                    return Mono.just(ResponseEntity
-                            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(new AuthResponse("")));
+                .map(userDetails -> {
+                    String accessToken = jwtTokenProvider.generateToken(userDetails);
+                    String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
+
+                    ResponseCookie responseCookie = ResponseCookie.from("refresh_token", refreshToken)
+                            .httpOnly(true)
+                            .secure(true)
+                            .path("/")
+                            .maxAge(Duration.ofDays(30))
+                            .sameSite("Strict")
+                            //.domain("domain.com")
+                            .build();
+
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.SET_COOKIE, responseCookie.toString())
+                            .body(new AuthResponse(accessToken));
+
+                })
+                .switchIfEmpty(Mono.fromRunnable(() -> log.warn("Invalid login attempt for username: " + authRequest.username()))
+                        .thenReturn(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()))
+                .onErrorResume(e->{
+                    log.error(e.getMessage());
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
                 });
     }
 
@@ -63,8 +78,21 @@ public class AuthController {
         return null;
     }
 
-    @PostMapping(value = "/refresh")
-    public Mono<AuthResponse> refreshToken(){
-        return null;
+    @GetMapping(value = "/refresh")
+    public Mono<ResponseEntity<AuthResponse>> refreshToken(@CookieValue(name = "refresh_token", required = false) String refreshToken){
+        if (refreshToken == null) return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+
+        String username = jwtTokenProvider.extractUsername(refreshToken);
+
+        return reactiveUserDetailsService.findByUsername(username)
+                .filter(userDetails -> jwtTokenProvider.isTokenValid(refreshToken, userDetails))
+                .map(jwtTokenProvider::generateToken)
+                .map(AuthResponse::new)
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()))
+                .onErrorResume(e ->{
+                    log.error(e.getMessage());
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                });
     }
 }
