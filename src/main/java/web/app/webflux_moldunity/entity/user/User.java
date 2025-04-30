@@ -17,26 +17,15 @@ import java.time.LocalDateTime;
 public class User {
     @Id
     private Long id;
-    @NotEmpty
-    private String username;
-    @NotEmpty
-    private String password;
+    @NotEmpty private String username;
+    @NotEmpty private String password;
 
     @Email(regexp = "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,3}", message = "Invalid email")
-    @NotEmpty
-    private String email;
-    @NotEmpty
-    private String role;
-
-    @NotEmpty
-    private String country;
-
-    @NotEmpty
-    private String location;
-
-    @NotEmpty
+    @NotEmpty private String email;
+    @NotEmpty private String role;
+    @NotEmpty private String country;
+    @NotEmpty private String location;
     private String phone;
-
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
