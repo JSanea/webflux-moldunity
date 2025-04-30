@@ -63,7 +63,7 @@ public class AdService {
     public Flux<Ad> getFluxAdsByUsername(String username){
         return databaseClient.sql("SELECT ads.* FROM ads WHERE ads.username = :username")
                 .bind("username", username)
-                .map((row, metadata) -> Ad.fromRow(row)
+                .map((row, metadata) -> Ad.mapRowToAd(row)
                 )
                 .all();
     }

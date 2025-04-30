@@ -54,7 +54,7 @@ public class Ad {
         this.republishedAt = t;
     }
 
-    public static Ad fromRow(Row row){
+    public static Ad mapRowToAd(Row row){
         return Ad.builder()
                 .id(row.get("id", Long.class))
                 .offerType(row.get("offer_type", String.class))
