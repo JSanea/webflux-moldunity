@@ -23,6 +23,7 @@ public class FavoriteAd {
     @NotNull
     private Long userId;
 
+    @NotNull
     private LocalDateTime createdAt;
 
     @NotNull

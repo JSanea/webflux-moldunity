@@ -20,6 +20,7 @@ public class AdImage {
     @NotEmpty
     private String url;
 
+    @NotNull
     private LocalDateTime createdAt;
 
     @NotNull

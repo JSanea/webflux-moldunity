@@ -79,7 +79,7 @@ public class AuthController {
         return null;
     }
 
-    @GetMapping(value = "/refresh")
+    @GetMapping(value = "/auth/refresh")
     @Tag(name = "Authentication", description = "Endpoints for token management")
     @Operation(
             summary = "Refresh JWT access token",

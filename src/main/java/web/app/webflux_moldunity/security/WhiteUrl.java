@@ -8,6 +8,7 @@ public final class WhiteUrl {
         return new String[]{
                 "/login",
                 "/ads/**",
+                "/auth/refresh",
                 "/v3/api-docs",
                 "/swagger-ui.html",
                 "/swagger-ui/**",

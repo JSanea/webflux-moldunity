@@ -13,22 +13,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.enums.AdType;
 import web.app.webflux_moldunity.service.AdService;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import web.app.webflux_moldunity.service.UserService;
 
 
 @RestController
 @Slf4j
 public class AdController {
     private final AdService adService;
+    private final UserService userService;
 
     @Autowired
-    public AdController(AdService adService) {
+    public AdController(AdService adService, UserService userService) {
         this.adService = adService;
+        this.userService = userService;
     }
 
     @GetMapping(value = "/ads/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -71,15 +76,12 @@ public class AdController {
     @Tag(name = "Advertisements", description = "Endpoints for managing advertisements")
     @Operation(
             summary = "Create a new advertisement",
-            description = "Adds a new advertisement with a specific subtype.",
+            description = "Adds a new advertisement with a specific subcategory.",
             requestBody = @RequestBody(
                     description = "Ad object to be created",
                     required = true,
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Ad.class))
             ),
-            parameters = {
-                    @Parameter(name = "type", description = "Subtype of the advertisement", required = true)
-            },
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -96,21 +98,34 @@ public class AdController {
                     )
             }
     )
-    public Mono<ResponseEntity<Ad>> add(@Valid @RequestBody Ad ad,
-                                        @RequestParam(value = "type") String subtype) {
+    public Mono<ResponseEntity<Ad>> add(@Valid @RequestBody Ad ad) {
         if (ad.getSubcategory() == null)
-            return Mono.just(ResponseEntity.badRequest().body(new Ad()));
+            return Mono.just(ResponseEntity.badRequest().build());
 
-        return Mono.justOrEmpty(AdType.fromSubcategoryName(subtype))
-                .flatMap(sub -> adService.save(ad, sub.getSubcategoryType())
-                .map(savedAd -> ResponseEntity.status(HttpStatus.CREATED).body(savedAd)))
+        return ReactiveSecurityContextHolder.getContext()
+                .map(ctx -> (UserDetails) ctx.getAuthentication().getPrincipal())
+                .map(UserDetails::getUsername)
+                .filter(authenticatedUsername -> authenticatedUsername.equals(ad.getUsername()))
+                .flatMap(username -> adService.getCountAdsByUsername(username)
+                        .filter(count -> count < 10)
+                        .flatMap(validUser -> userService.getIdByUsername(username))
+                        .flatMap(userId -> {
+                            ad.setUserId(userId);
+                            return Mono.justOrEmpty(AdType.fromSubcategoryName(ad.getSubcategoryName()));
+                        })
+                        .flatMap(subcategory -> adService.save(ad, subcategory.getSubcategoryType()))
+                        .map(savedAd -> ResponseEntity.status(HttpStatus.CREATED).body(savedAd))
+                )
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
                 .onErrorResume(e -> {
-                    log.error("Error save Ad: ", e);
+                    log.error("Error saving Ad: ", e);
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
                 });
     }
 }
+
+
+
 
 
 

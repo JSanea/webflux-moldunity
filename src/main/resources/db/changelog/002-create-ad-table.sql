@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS ads (
     title            VARCHAR(128)  NOT NULL,
     category_name    VARCHAR(32)   NOT NULL,
     subcategory_name VARCHAR(32)   NOT NULL,
+    username         VARCHAR(32)   NOT NULL,
     description      VARCHAR(1024),
     price            INTEGER       NOT NULL CHECK (price > 0),
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

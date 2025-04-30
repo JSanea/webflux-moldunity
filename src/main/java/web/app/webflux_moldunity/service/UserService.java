@@ -6,8 +6,12 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.entity.user.User;
 import web.app.webflux_moldunity.repository.UserRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -32,4 +36,12 @@ public class UserService {
                 ))
                 .one();
     }
+
+    public Mono<Long> getIdByUsername(String username){
+        return databaseClient.sql("SELECT users.id AS id FROM users WHERE username = :username")
+                .bind("username", username)
+                .map((row, metadata) -> row.get("id", Long.class))
+                .one();
+    }
+
 }

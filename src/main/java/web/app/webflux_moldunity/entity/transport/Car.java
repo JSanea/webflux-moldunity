@@ -2,6 +2,7 @@ package web.app.webflux_moldunity.entity.transport;
 
 
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -18,5 +19,6 @@ public class Car extends Vehicle implements Subcategory {
     @NotEmpty
     private String body;
 
+    @NotNull
     private Long AdId;
 }
