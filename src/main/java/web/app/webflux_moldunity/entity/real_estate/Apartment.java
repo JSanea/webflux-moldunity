@@ -14,7 +14,5 @@ import web.app.webflux_moldunity.entity.ad.Subcategory;
 public class Apartment implements Subcategory {
     @Id
     private Long id;
-
-    @NotNull
-    private Long AdId;
+    @NotNull private Long AdId;
 }

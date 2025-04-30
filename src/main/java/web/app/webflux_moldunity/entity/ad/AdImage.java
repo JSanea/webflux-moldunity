@@ -16,15 +16,9 @@ import java.time.LocalDateTime;
 public class AdImage {
     @Id
     private Long id;
-
-    @NotEmpty
-    private String url;
-
-    @NotNull
-    private LocalDateTime createdAt;
-
-    @NotNull
-    private Long adId;
+    @NotEmpty private String url;
+    @NotNull  private LocalDateTime createdAt;
+    @NotNull  private Long adId;
 }
 
 

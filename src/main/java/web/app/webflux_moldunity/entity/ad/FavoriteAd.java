@@ -16,18 +16,10 @@ import java.time.LocalDateTime;
 public class FavoriteAd {
     @Id
     private Long id;
-
-    @NotEmpty
-    private String username;
-
-    @NotNull
-    private Long userId;
-
-    @NotNull
-    private LocalDateTime createdAt;
-
-    @NotNull
-    private Long adId;
+    @NotEmpty private String username;
+    @NotNull  private Long userId;
+    @NotNull  private LocalDateTime createdAt;
+    @NotNull  private Long adId;
 }
 
 

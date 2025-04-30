@@ -15,10 +15,6 @@ import web.app.webflux_moldunity.entity.ad.Subcategory;
 public class Car extends Vehicle implements Subcategory {
     @Id
     private Long id;
-
-    @NotEmpty
-    private String body;
-
-    @NotNull
-    private Long AdId;
+    @NotEmpty private String body;
+    @NotNull private Long AdId;
 }

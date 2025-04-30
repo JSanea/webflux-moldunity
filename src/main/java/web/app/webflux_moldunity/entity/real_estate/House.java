@@ -14,10 +14,6 @@ import web.app.webflux_moldunity.entity.ad.Subcategory;
 public class House implements Subcategory {
     @Id
     private Long id;
-
-    @NotEmpty
-    private Integer floors;
-
-    @NotNull
-    private Long AdId;
+    @NotEmpty private Integer floors;
+    @NotNull  private Long AdId;
 }
