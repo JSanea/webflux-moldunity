@@ -6,6 +6,7 @@ public final class WhiteUrl {
     public static String[] urls(){
         return new String[]{
                 "/login",
+                "/register",
                 "/ads/**",
                 "/auth/refresh",
                 "/v3/api-docs",

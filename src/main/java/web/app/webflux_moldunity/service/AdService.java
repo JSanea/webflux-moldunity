@@ -1,5 +1,6 @@
 package web.app.webflux_moldunity.service;
 
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
@@ -16,17 +17,11 @@ import web.app.webflux_moldunity.exception.InvalidAdStructureException;
 import java.util.List;
 
 @Service
+@AllArgsConstructor
 public class AdService {
     private final R2dbcEntityTemplate r2dbcEntityTemplate;
     private final DatabaseClient databaseClient;
     private final TransactionalOperator tx;
-
-    @Autowired
-    public AdService(R2dbcEntityTemplate r2dbcEntityTemplate, DatabaseClient databaseClient, TransactionalOperator transactionalOperator) {
-        this.r2dbcEntityTemplate = r2dbcEntityTemplate;
-        this.databaseClient = databaseClient;
-        this.tx = transactionalOperator;
-    }
 
     public <S extends Subcategory> Mono<Ad> save(Ad ad, Class<S> subcategoryType){
         ad.setDateTimeFields();

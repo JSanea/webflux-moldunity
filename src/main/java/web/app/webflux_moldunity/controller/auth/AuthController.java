@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -24,18 +25,12 @@ import web.app.webflux_moldunity.security.JwtTokenProvider;
 import java.time.Duration;
 
 @RestController
+@AllArgsConstructor
 @Slf4j
 public class AuthController {
     private final ReactiveUserDetailsService reactiveUserDetailsService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
-
-    @Autowired
-    public AuthController(ReactiveUserDetailsService reactiveUserDetailsService, JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder) {
-        this.reactiveUserDetailsService = reactiveUserDetailsService;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @PostMapping(value = "/login")
     @Operation(summary = "Authenticate user and return JWT token")

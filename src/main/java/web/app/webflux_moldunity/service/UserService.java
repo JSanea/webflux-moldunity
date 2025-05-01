@@ -1,39 +1,39 @@
 package web.app.webflux_moldunity.service;
 
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.entity.user.User;
 import web.app.webflux_moldunity.repository.UserRepository;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 @Service
+@AllArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
     private final R2dbcEntityTemplate r2dbcEntityTemplate;
     private final DatabaseClient databaseClient;
+    private final TransactionalOperator tx;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    public UserService(UserRepository userRepository, R2dbcEntityTemplate r2dbcEntityTemplate, DatabaseClient databaseClient) {
-        this.userRepository = userRepository;
-        this.r2dbcEntityTemplate = r2dbcEntityTemplate;
-        this.databaseClient = databaseClient;
-    }
 
-    public Mono<User> getUserCredentialsByName(String username){
+    public Mono<User> getUserByName(String username){
         return databaseClient.sql("SELECT * FROM users WHERE username = :username")
                 .bind("username", username)
-                .map((row, metadata) -> new User(
-                        row.get("username", String.class),
-                        row.get("password", String.class),
-                        row.get("role",     String.class)
-                ))
+                .map((row, metadata) -> User.mapRowToUser(row)).one();
+    }
+
+    public Mono<User> findByUsernameOrEmail(String username, String email){
+        return databaseClient.sql("SELECT * FROM users WHERE username = :username OR email = :email")
+                .bind("username", username)
+                .bind("email", email)
+                .map((row, metadata) -> User.mapRowToUser(row))
                 .one();
     }
 
@@ -44,4 +44,8 @@ public class UserService {
                 .one();
     }
 
+    public Mono<User> save(User user){
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return r2dbcEntityTemplate.insert(user).as(tx::transactional);
+    }
 }

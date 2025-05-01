@@ -6,7 +6,6 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.repository.UserRepository;
 import web.app.webflux_moldunity.service.UserService;
 
 @Service
@@ -20,7 +19,7 @@ public class UserDetailsService implements ReactiveUserDetailsService {
 
     @Override
     public Mono<UserDetails> findByUsername(String username) {
-        return userService.getUserCredentialsByName(username)
+        return userService.getUserByName(username)
             .map(user -> User.withUsername(user.getUsername())
                             .password(user.getPassword())
                             .roles(user.getRole())

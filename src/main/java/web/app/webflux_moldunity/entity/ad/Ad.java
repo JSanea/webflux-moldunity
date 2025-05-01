@@ -28,6 +28,8 @@ public class Ad {
     @NotEmpty private String title;
     @NotEmpty private String categoryName;
     @NotEmpty private String subcategoryName;
+    @NotEmpty private String country;
+    @NotEmpty private String location;
 
     private String description;
 

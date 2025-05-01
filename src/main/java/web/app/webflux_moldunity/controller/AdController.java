@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,16 +26,11 @@ import web.app.webflux_moldunity.service.UserService;
 
 
 @RestController
+@AllArgsConstructor
 @Slf4j
 public class AdController {
     private final AdService adService;
     private final UserService userService;
-
-    @Autowired
-    public AdController(AdService adService, UserService userService) {
-        this.adService = adService;
-        this.userService = userService;
-    }
 
     @GetMapping(value = "/ads/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Tag(name = "Advertisements", description = "Endpoints for managing advertisements")

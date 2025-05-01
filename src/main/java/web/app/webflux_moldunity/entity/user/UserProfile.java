@@ -5,5 +5,7 @@ import java.time.LocalDateTime;
 
 public record UserProfile(
         String username,
+        String country,
+        String location,
         LocalDateTime createdAt
 ){}
