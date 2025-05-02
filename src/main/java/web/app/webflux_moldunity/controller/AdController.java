@@ -138,8 +138,14 @@ public class AdController {
     @DeleteMapping(value = "/ads",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<String>> delete(@RequestBody Ad ad) {
-        return null;
+    public Mono<ResponseEntity<Ad>> delete(@RequestBody Ad ad) {
+        return adService.delete(ad)
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
+                .onErrorResume(e -> {
+                    log.error("Error deleting Ad: {}", e.getMessage(), e);
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                });
     }
 }
 
