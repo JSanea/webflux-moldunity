@@ -19,11 +19,11 @@ public class UserDetailsService implements ReactiveUserDetailsService {
 
     @Override
     public Mono<UserDetails> findByUsername(String username) {
-        return userService.getUserByName(username)
-            .map(user -> User.withUsername(user.getUsername())
-                            .password(user.getPassword())
-                            .roles(user.getRole())
-                            .build());
+        return userService.findUserByName(username)
+                .map(user -> User.withUsername(user.getUsername())
+                        .password(user.getPassword())
+                        .roles(user.getRole())
+                        .build());
     }
 }
 

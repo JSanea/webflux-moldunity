@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS ads (
     username         VARCHAR(32)  NOT NULL,
     country          VARCHAR(32)  NOT NULL,
     location         VARCHAR(64)  NOT NULL,
-    description      VARCHAR(1024),
+    description      VARCHAR(2048),
     price            INTEGER       NOT NULL CHECK (price > 0),
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

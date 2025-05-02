@@ -16,7 +16,6 @@ import web.app.webflux_moldunity.security.WhiteUrl;
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
-
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
                                                          ReactiveAuthenticationManager authenticationManager,
@@ -28,6 +27,7 @@ public class SecurityConfig {
         return http
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(WhiteUrl.urls()).permitAll()
+                        .pathMatchers("/admin/**").hasRole("ADMIN")
                         .anyExchange().authenticated()
                 )
                 .addFilterAt(authWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)

@@ -23,21 +23,17 @@ import java.util.List;
 public class Ad {
     @Id
     private Long id;
-    @NotEmpty private String username;
+    private String username;
     @NotEmpty private String offerType;
     @NotEmpty private String title;
     @NotEmpty private String categoryName;
     @NotEmpty private String subcategoryName;
-    @NotEmpty private String country;
-    @NotEmpty private String location;
-
+    private String country;
+    private String location;
     private String description;
-
     @Min(value = 1, message = "Price must be greater than 0")
     private Integer price;
-
     private Integer views = 0;
-
     private Subcategory subcategory;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -45,18 +41,18 @@ public class Ad {
     private Long userId;
     private List<AdImage> adImages;
 
-    public void setSubcategoryNameFromAdType(AdType type){
+    public void setSubcategoryNameFromAdType(AdType type) {
         this.subcategoryName = type.getSubcategoryName();
     }
 
-    public void setDateTimeFields(){
+    public void setDateTimeFields() {
         var t = LocalDateTime.now();
         this.createdAt = t;
         this.updatedAt = t;
         this.republishedAt = t;
     }
 
-    public static Ad mapRowToAd(Row row){
+    public static Ad mapRowToAd(Row row) {
         return Ad.builder()
                 .id(row.get("id", Long.class))
                 .offerType(row.get("offer_type", String.class))

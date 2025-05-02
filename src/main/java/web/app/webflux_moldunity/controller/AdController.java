@@ -7,10 +7,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +19,6 @@ import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.enums.AdType;
 import web.app.webflux_moldunity.service.AdService;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import web.app.webflux_moldunity.service.UserService;
 
 
@@ -73,11 +70,6 @@ public class AdController {
     @Operation(
             summary = "Create a new advertisement",
             description = "Adds a new advertisement with a specific subcategory.",
-            requestBody = @RequestBody(
-                    description = "Ad object to be created",
-                    required = true,
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Ad.class))
-            ),
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -94,19 +86,26 @@ public class AdController {
                     )
             }
     )
-    public Mono<ResponseEntity<Ad>> add(@Valid @RequestBody Ad ad) {
+    public Mono<ResponseEntity<Ad>> add(@RequestBody Ad ad) {
         if (ad.getSubcategory() == null)
             return Mono.just(ResponseEntity.badRequest().build());
 
         return ReactiveSecurityContextHolder.getContext()
                 .map(ctx -> (UserDetails) ctx.getAuthentication().getPrincipal())
                 .map(UserDetails::getUsername)
-                .filter(authenticatedUsername -> authenticatedUsername.equals(ad.getUsername()))
                 .flatMap(username -> adService.getCountAdsByUsername(username)
                         .filter(count -> count < 10)
-                        .flatMap(validUser -> userService.getIdByUsername(username))
-                        .flatMap(userId -> {
-                            ad.setUserId(userId);
+                        .flatMap(validUser -> userService.findUserByName(username))
+                        .flatMap(user -> {
+                            ad.setUsername(username);
+                            ad.setUserId(user.getId());
+
+                            if(ad.getCountry() == null)
+                                ad.setCountry(user.getCountry());
+
+                            if(ad.getLocation() == null)
+                                ad.setLocation(user.getLocation());
+
                             return Mono.justOrEmpty(AdType.fromSubcategoryName(ad.getSubcategoryName()));
                         })
                         .flatMap(subcategory -> adService.save(ad, subcategory.getSubcategoryType()))
@@ -117,6 +116,30 @@ public class AdController {
                     log.error("Error saving Ad: ", e);
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
                 });
+    }
+
+    @PutMapping(value = "/ads",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Ad>> update(@RequestBody Ad ad) {
+        if (ad.getSubcategory() == null)
+            return Mono.just(ResponseEntity.badRequest().build());
+
+        return Mono.justOrEmpty(AdType.fromSubcategoryName(ad.getSubcategoryName()))
+                .flatMap(subcategory -> adService.update(ad, subcategory.getSubcategoryType()))
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
+                .onErrorResume(e -> {
+                    log.error("Error updating Ad: {}", e.getMessage(), e);
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                });
+    }
+
+    @DeleteMapping(value = "/ads",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<String>> delete(@RequestBody Ad ad) {
+        return null;
     }
 }
 

@@ -48,9 +48,9 @@ public class User {
 
     public static User mapRowToUser(Row row){
         return User.builder()
-                .id(row.get("id", Long.class))
+                //.id(row.get("id", Long.class))
                 .username(row.get("username", String.class))
-                .password(row.get("password", String.class))
+                //.password(row.get("password", String.class))
                 .email(row.get("email", String.class))
                 .role(row.get("role", String.class))
                 .country(row.get("country", String.class))

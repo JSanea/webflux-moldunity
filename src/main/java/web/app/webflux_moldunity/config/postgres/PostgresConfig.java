@@ -2,11 +2,9 @@ package web.app.webflux_moldunity.config.postgres;
 
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
-import io.r2dbc.pool.PoolingConnectionFactoryProvider;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
-import io.r2dbc.spi.Option;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -47,23 +45,24 @@ public class PostgresConfig extends AbstractR2dbcConfiguration {
     @NonNull
     @Bean
     public ConnectionFactory connectionFactory() {
-        ConnectionFactory connectionFactory =  ConnectionFactories.get(
-            ConnectionFactoryOptions.builder()
-                .option(DRIVER, "postgresql")
-                .option(HOST, host)
-                .option(PORT, port)
-                .option(DATABASE, database)
-                .option(USER, username)
-                .option(PASSWORD, password)
-                .build());
+        ConnectionFactory connectionFactory = ConnectionFactories.get(
+                ConnectionFactoryOptions.builder()
+                        .option(DRIVER, "postgresql")
+                        .option(HOST, host)
+                        .option(PORT, port)
+                        .option(DATABASE, database)
+                        .option(USER, username)
+                        .option(PASSWORD, password)
+                        .build());
 
         ConnectionPoolConfiguration connectionPoolConfiguration = ConnectionPoolConfiguration.builder()
-            .connectionFactory(connectionFactory)
-            .initialSize(Runtime.getRuntime().availableProcessors())
-            .maxSize(Runtime.getRuntime().availableProcessors() * 2)
-            .maxIdleTime(Duration.ofSeconds(30))
-            .maxLifeTime(Duration.ofSeconds(60))
-            .build();
+                .connectionFactory(connectionFactory)
+                .initialSize(Runtime.getRuntime().availableProcessors())
+                .maxSize(128)
+                .minIdle(Runtime.getRuntime().availableProcessors())
+                .maxIdleTime(Duration.ofSeconds(30))
+                .maxLifeTime(Duration.ofSeconds(60))
+                .build();
 
         return new ConnectionPool(connectionPoolConfiguration);
     }
