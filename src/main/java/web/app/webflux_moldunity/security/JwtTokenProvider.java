@@ -1,14 +1,13 @@
 package web.app.webflux_moldunity.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import web.app.webflux_moldunity.exception.JwtAuthenticationException;
 
 import javax.crypto.SecretKey;
 import java.time.Duration;
@@ -82,11 +81,17 @@ public class JwtTokenProvider {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            throw new JwtAuthenticationException("Token expired", e);
+        } catch (JwtException e) {
+            throw new JwtAuthenticationException("Invalid JWT", e);
+        }
     }
 
     private SecretKey getSigningKey() {

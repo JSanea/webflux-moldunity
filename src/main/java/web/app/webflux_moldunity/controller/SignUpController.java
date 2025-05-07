@@ -11,6 +11,8 @@ import web.app.webflux_moldunity.entity.user.User;
 import web.app.webflux_moldunity.service.UserService;
 import web.app.webflux_moldunity.service.email.EmailConfirmationService;
 
+import java.util.Set;
+
 
 @RestController
 @AllArgsConstructor
@@ -18,11 +20,21 @@ import web.app.webflux_moldunity.service.email.EmailConfirmationService;
 public class SignUpController {
     private final EmailConfirmationService emailConfirmationService;
     private final UserService userService;
+    private static final Set<String> RESERVED_USERNAMES = Set.of(
+            "anonymoususer", "admin", "moldunity"
+    );
 
     @PostMapping(value = "/register",
                 consumes = MediaType.APPLICATION_JSON_VALUE,
                 produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<String>> confirmUserEmail(@RequestBody User user){
+        String normalizedUsername = user.getUsername().toLowerCase();
+
+        if (RESERVED_USERNAMES.contains(normalizedUsername)) {
+            return Mono.just(ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+                    .body("The username '" + user.getUsername() + "' is reserved and cannot be used."));
+        }
+
         return userService.findByUsernameOrEmail(user.getUsername(), user.getEmail())
                 .map(u -> {
                     if(user.getUsername().equals(u.getUsername()))

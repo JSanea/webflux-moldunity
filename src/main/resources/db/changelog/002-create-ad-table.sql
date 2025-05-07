@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS ads (
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     republished_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     user_id BIGINT   NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     search_vector TSVECTOR GENERATED ALWAYS AS (
         setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
         setweight(to_tsvector('english', coalesce(description, '')), 'B')

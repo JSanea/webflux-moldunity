@@ -8,9 +8,9 @@
 
     <!-- Add GIN index on search_vector -->
     <changeSet id="20250429-01" author="Admin">
+        <comment>Creates GIN index on search_vector for full-text search optimization</comment>
         <sql>
-            CREATE INDEX IF NOT EXISTS idx_ads_search_vector
-            ON ads USING GIN (search_vector);
+            CREATE INDEX idx_ads_search_vector ON ads USING GIN (search_vector);
         </sql>
     </changeSet>
 

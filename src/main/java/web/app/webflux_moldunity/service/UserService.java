@@ -4,12 +4,17 @@ package web.app.webflux_moldunity.service;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.data.relational.core.query.Criteria;
+import org.springframework.data.relational.core.query.Query;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
+import web.app.webflux_moldunity.entity.user.Profile;
 import web.app.webflux_moldunity.entity.user.User;
+import web.app.webflux_moldunity.entity.user.UserProfile;
+import web.app.webflux_moldunity.exception.UserServiceException;
 
 @Service
 @AllArgsConstructor
@@ -19,6 +24,7 @@ public class UserService {
     private final DatabaseClient databaseClient;
     private final TransactionalOperator tx;
     private final PasswordEncoder passwordEncoder;
+    private final AdService adService;
 
     public Mono<User> findUserByName(String username) {
         return databaseClient.sql("SELECT * FROM users WHERE username = :username")
@@ -63,5 +69,24 @@ public class UserService {
                     log.error("Error inserting User: {}", e.getMessage(), e);
                     return Mono.error(new RuntimeException("Failed to insert User"));
                 });
+    }
+
+    public Mono<Profile> getProfileByName(String name){
+        return r2dbcEntityTemplate.selectOne(
+                Query.query(Criteria.where("username").is(name)),
+                User.class
+        )
+        .map(x -> new UserProfile(
+                    x.getUsername(),
+                    x.getCountry(),
+                    x.getLocation(),
+                    x.getCreatedAt()
+            )
+        )
+        .flatMap(user -> adService.getByUsername(name).map(ads -> new Profile(user, ads)))
+        .onErrorResume(e -> {
+            log.error("Error to fetch profile by name: {}", e.getMessage(), e);
+            return Mono.error(new UserServiceException("Error to fetch profile by name"));
+        });
     }
 }

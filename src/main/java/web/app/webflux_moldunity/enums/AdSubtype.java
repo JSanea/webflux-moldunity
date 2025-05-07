@@ -9,7 +9,7 @@ import web.app.webflux_moldunity.entity.transport.Car;
 import java.util.Arrays;
 import java.util.Optional;
 
-public enum AdType {
+public enum AdSubtype {
     // ******************* Transport *******************
     CAR(100, "Car", Car.class),
     BUS_MINIBUS(101, "Bus-Minibus", BusMiniBus.class),
@@ -36,7 +36,7 @@ public enum AdType {
 
     private final Class<? extends Subcategory> subcategoryClassType;
 
-    AdType(Integer code, String subcategoryName, Class<? extends Subcategory> subcategoryClassType) {
+    AdSubtype(Integer code, String subcategoryName, Class<? extends Subcategory> subcategoryClassType) {
         this.code = code;
         this.subcategoryName = subcategoryName;
         this.subcategoryClassType = subcategoryClassType;
@@ -54,13 +54,13 @@ public enum AdType {
         return subcategoryClassType;
     }
 
-    public static Optional<AdType> fromSubcategoryName(String name) {
+    public static Optional<AdSubtype> fromSubcategoryName(String name) {
         return Arrays.stream(values())
                 .filter(c -> c.subcategoryName.equalsIgnoreCase(name))
                 .findFirst();
     }
 
-    public static Optional<AdType> fromSubcategory(Class<? extends Subcategory> subcategoryClass) {
+    public static Optional<AdSubtype> fromSubcategory(Class<? extends Subcategory> subcategoryClass) {
         return Arrays.stream(values())
                 .filter(c -> c.subcategoryClassType.equals(subcategoryClass))
                 .findFirst();

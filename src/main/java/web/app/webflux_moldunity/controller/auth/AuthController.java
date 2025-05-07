@@ -8,21 +8,23 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.security.AuthRequest;
 import web.app.webflux_moldunity.security.AuthResponse;
 import web.app.webflux_moldunity.security.JwtTokenProvider;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @AllArgsConstructor
@@ -111,4 +113,19 @@ public class AuthController {
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
                 });
     }
+
+    @GetMapping("/is-authenticate")
+    public Mono<ResponseEntity<Map<String, Object>>> checkAuthentication() {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(SecurityContext::getAuthentication)
+                .filter(auth -> !"anonymousUser".equals(auth.getPrincipal()))
+                .map(auth -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("authenticated", true);
+                    //response.put("username", auth.getName());
+                    return ResponseEntity.ok(response);
+                })
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("authenticated", false)));
+    }
+
 }

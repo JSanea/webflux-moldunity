@@ -10,7 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
-import web.app.webflux_moldunity.enums.AdType;
+import web.app.webflux_moldunity.enums.AdSubtype;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
-@Table(value = "ads")
+@Table(name = "ads")
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Ad {
     @Id
@@ -41,11 +41,14 @@ public class Ad {
     private Long userId;
     private List<AdImage> adImages;
 
-    public void setSubcategoryNameFromAdType(AdType type) {
+    public void setSubcategoryNameFromAdType(AdSubtype type) {
         this.subcategoryName = type.getSubcategoryName();
     }
 
     public void setDateTimeFields() {
+        if(createdAt != null && updatedAt != null && republishedAt != null)
+            return;
+
         var t = LocalDateTime.now();
         this.createdAt = t;
         this.updatedAt = t;
@@ -54,14 +57,14 @@ public class Ad {
 
     public static Ad mapRowToAd(Row row) {
         return Ad.builder()
-                .id(row.get("id", Long.class))
+                .id(row.get("ads_id", Long.class))
                 .offerType(row.get("offer_type", String.class))
                 .title(row.get("title", String.class))
                 .description(row.get("description", String.class))
                 .categoryName(row.get("category_name", String.class))
                 .subcategoryName(row.get("subcategory_name", String.class))
                 .price(row.get("price", Integer.class))
-                .createdAt(row.get("created_at", LocalDateTime.class))
+                .createdAt(row.get("ads_created_at", LocalDateTime.class))
                 .updatedAt(row.get("updated_at", LocalDateTime.class))
                 .republishedAt(row.get("republished_at", LocalDateTime.class))
                 .username(row.get("username", String.class))

@@ -1,5 +1,6 @@
 package web.app.webflux_moldunity.entity.real_estate;
 
+import io.r2dbc.spi.Row;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -16,4 +17,9 @@ public class House implements Subcategory {
     private Long id;
     @NotEmpty private Integer floors;
     @NotNull  private Long AdId;
+
+
+    public House fromRow(Row row) {
+        return null;
+    }
 }
