@@ -14,7 +14,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.service.AdService;
 import web.app.webflux_moldunity.service.image.ImageService;
+import web.app.webflux_moldunity.util.FilePartUtil;
 import web.app.webflux_moldunity.util.ImageUtil;
+
+import java.util.List;
 
 
 @RestController
@@ -36,14 +39,14 @@ public class ImageController {
             }
 
             return Flux.fromIterable(fileList)
-                .flatMap(filePart -> ImageUtil.FilePartToFile(filePart)
-                        .flatMap(file -> ImageUtil.isWebPFormat(file)
+                .flatMap(filePart -> FilePartUtil.filePartToFile(filePart)
+                        .flatMap(file -> ImageUtil.isWebP(file)
                                 .flatMap(isWebP -> {
                                     if (!isWebP) {
                                         return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST)
                                                 .body("Only WebP images are allowed"));
                                     }
-                                        return imageService.saveWebp(id, filePart, file);
+                                        return imageService.saveWebp(id, filePart.filename(), file);
                                     })
                             )
                 )
@@ -53,5 +56,19 @@ public class ImageController {
                     log.error("Error uploading images: {}", e.getMessage(), e);
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload images"));
                 });
+    }
+
+    @PostMapping(value = "/images/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Mono<ResponseEntity<String>> save(@PathVariable Long id,
+                                             @RequestPart("images") List<FilePart> images){
+        if(images.size() > 10){
+            return Mono.just(ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Max 10 images allowed"));
+        }
+
+        return null;
+//        return Flux.fromIterable(images)
+//                .flatMap(ImageUtil::filePartToFile)
+//                .map(f -> ImageUtil.isWebP(f))
+//                .map()
     }
 }

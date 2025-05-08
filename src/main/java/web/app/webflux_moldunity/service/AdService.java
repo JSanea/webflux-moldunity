@@ -6,6 +6,8 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
@@ -102,6 +104,17 @@ public class AdService {
                 });
     }
 
+    public Mono<String> getOwnerById(Long id){
+        return databaseClient.sql("SELECT ads.username FROM ads WHERE ads.id = :id")
+                .bind("id", id)
+                .map(((row, rowMetadata) -> row.get("username", String.class)))
+                .one()
+                .onErrorResume(e -> {
+                    log.error("Error to get Ad owner: {}", e.getMessage(), e);
+                    return Mono.error(new AdServiceException("Error to get Ad owner"));
+                });
+    }
+
     public Mono<Long> countBySubcategory(String subcategory) {
         String sql = "SELECT COUNT(*) FROM ads WHERE subcategory_name = :subcategory";
         return databaseClient.sql(sql)
@@ -178,6 +191,17 @@ public class AdService {
                     return Mono.error(new AdServiceException("Failed to delete Ad"));
                 });
     }
+
+    public Mono<Boolean> isOwner(Long adId) {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(SecurityContext::getAuthentication)
+                .flatMap(auth -> getOwnerById(adId).map(owner -> owner.equals(auth.getPrincipal())))
+                .onErrorResume(e -> {
+                    log.error("Error to check Ad owner: {}", e.getMessage(), e);
+                    return Mono.error(new AdServiceException("Error to check Ad owner"));
+                });
+    }
+
 
     private String baseSelectAdsWithImages(){
         return String.format("""

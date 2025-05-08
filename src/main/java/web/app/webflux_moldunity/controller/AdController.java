@@ -99,7 +99,7 @@ public class AdController {
 
     @GetMapping(value = "/ads/{adId}/subcategory", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<? extends Subcategory> getSubcategoryByAdId(@PathVariable Long adId,
-                                                            @RequestParam("stype") String subtype){
+                                                            @RequestParam("type") String subtype){
         return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(subtype))
                 .flatMap(sub -> adService.findSubcategoryByAdId(adId, sub.getSubcategoryType()))
                 .onErrorResume(e -> {
@@ -195,7 +195,10 @@ public class AdController {
         if (ad.getSubcategory() == null)
             return Mono.just(ResponseEntity.badRequest().build());
 
-        return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(ad.getSubcategoryName()))
+        return adService.isOwner(ad.getId())
+                .flatMap(owner -> owner
+                        ? Mono.justOrEmpty(AdSubtype.fromSubcategoryName(ad.getSubcategoryName()))
+                        : Mono.empty())
                 .flatMap(subcategory -> adService.update(ad, subcategory.getSubcategoryType()))
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
@@ -209,9 +212,10 @@ public class AdController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Ad>> delete(@RequestBody Ad ad) {
-        return adService.delete(ad)
+        return adService.isOwner(ad.getId())
+                .flatMap(owner -> owner ? adService.delete(ad) : Mono.empty())
                 .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
+                .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).build()))
                 .onErrorResume(e -> {
                     log.error("Error deleting Ad: {}", e.getMessage(), e);
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());

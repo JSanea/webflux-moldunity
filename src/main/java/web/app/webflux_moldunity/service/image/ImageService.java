@@ -2,10 +2,8 @@ package web.app.webflux_moldunity.service.image;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.core.async.AsyncRequestBody;
 import web.app.webflux_moldunity.entity.ad.AdImage;
 import web.app.webflux_moldunity.service.AdService;
 
@@ -19,8 +17,9 @@ public class ImageService {
     private final ReactiveUploadService s3UploadService;
     private final AdService adService;
 
-    public Mono<AdImage> saveWebp(Long id, FilePart filePart, File file){
-        return s3UploadService.upload(id, filePart, AsyncRequestBody.fromFile(file))
+    public Mono<AdImage> saveWebp(Long id, String filename, File file){
+        // convert file to webp
+        return s3UploadService.upload(id, file)
                 .flatMap(url -> adService.saveImageUrl(AdImage.builder()
                         .url(url)
                         .createdAt(LocalDateTime.now())
@@ -31,6 +30,8 @@ public class ImageService {
                         log.warn("Failed to delete temp input file: {}", file.getAbsolutePath());
                         file.deleteOnExit();
                     }
+                    // delete webp
                 });
+
     }
 }

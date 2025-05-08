@@ -12,12 +12,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import web.app.webflux_moldunity.cookie.CookieProperties;
 import web.app.webflux_moldunity.security.AuthRequest;
 import web.app.webflux_moldunity.security.AuthResponse;
 import web.app.webflux_moldunity.security.JwtTokenProvider;
@@ -30,6 +32,7 @@ import java.util.Map;
 @AllArgsConstructor
 @Slf4j
 public class AuthController {
+    private final CookieProperties authCookieProperties;
     private final ReactiveUserDetailsService reactiveUserDetailsService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
@@ -49,9 +52,18 @@ public class AuthController {
                     String accessToken = jwtTokenProvider.generateToken(userDetails);
                     String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
 
+                    ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
+                            .httpOnly(true)
+                            .secure(authCookieProperties.isSecure()) // true in production
+                            .path("/")
+                            .maxAge(Duration.ofMinutes(15))
+                            .sameSite("Strict")
+                            //.domain("domain.com")
+                            .build();
+
                     ResponseCookie responseCookie = ResponseCookie.from("refresh_token", refreshToken)
                             .httpOnly(true)
-                            .secure(true)
+                            .secure(authCookieProperties.isSecure()) // true in production
                             .path("/")
                             .maxAge(Duration.ofDays(30))
                             .sameSite("Strict")
@@ -60,7 +72,8 @@ public class AuthController {
 
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, responseCookie.toString())
-                            .body(new AuthResponse(accessToken));
+                            .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                            .body(new AuthResponse("Success"));
 
                 })
                 .switchIfEmpty(Mono.fromRunnable(() -> log.warn("Invalid login attempt for username: " + authRequest.username()))
@@ -72,8 +85,26 @@ public class AuthController {
     }
 
     @PostMapping(value = "/logout")
-    public Mono<String> logout(){
-        return null;
+    public Mono<ResponseEntity<Void>>logout(ServerHttpResponse response){
+        ResponseCookie accessToken = ResponseCookie.from("access_token", "")
+                .httpOnly(true)
+                .secure(authCookieProperties.isSecure()) // true in production
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+
+        ResponseCookie refreshToken = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true)
+                .secure(authCookieProperties.isSecure()) // true in production
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+
+        response.addCookie(accessToken);
+        response.addCookie(refreshToken);
+        return Mono.just(ResponseEntity.ok().build());
     }
 
     @GetMapping(value = "/auth/refresh")
