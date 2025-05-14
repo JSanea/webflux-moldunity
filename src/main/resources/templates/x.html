@@ -1,0 +1,25 @@
+<form id="uploadForm">
+    <input type="file" id="files" name="files" multiple />
+    <button type="submit">Upload</button>
+</form>
+
+<script>
+  document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const filesInput = document.getElementById('files');
+    const formData = new FormData();
+
+    for (const file of filesInput.files) {
+      formData.append('files', file);
+    }
+
+    fetch('/flux/images/1', {
+      method: 'POST',
+      body: formData,
+    })
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(err => console.error(err));
+  });
+</script>

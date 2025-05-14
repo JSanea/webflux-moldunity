@@ -12,10 +12,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.service.AdService;
+import web.app.webflux_moldunity.entity.ad.AdImage;
 import web.app.webflux_moldunity.service.image.ImageService;
 import web.app.webflux_moldunity.util.FilePartUtil;
-import web.app.webflux_moldunity.util.ImageUtil;
 
 import java.util.List;
 
@@ -25,50 +24,54 @@ import java.util.List;
 @Slf4j
 public class ImageController {
     private final ImageService imageService;
-    private final AdService adService;
 
-    @PostMapping(value = "/images/ads/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Mono<ResponseEntity<String>> save(@PathVariable Long id, @RequestPart("images") Flux<FilePart> images){
+    @PostMapping(value = "/flux/images/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Mono<ResponseEntity<String>> save(@PathVariable Long id,
+                                             @RequestPart("images") Flux<FilePart> images){
         return images
-        .collectList()
-        .flatMap(fileList -> {
-            if (fileList.size() > 10) {
-                return Mono.just(ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .body("You can upload a maximum of 10 images"));
-            }
-
-            return Flux.fromIterable(fileList)
-                .flatMap(filePart -> FilePartUtil.filePartToFile(filePart)
-                        .flatMap(file -> ImageUtil.isWebP(file)
-                                .flatMap(isWebP -> {
-                                    if (!isWebP) {
-                                        return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                                .body("Only WebP images are allowed"));
-                                    }
-                                        return imageService.saveWebp(id, filePart.filename(), file);
-                                    })
-                            )
-                )
-                .then(Mono.just(ResponseEntity.ok("Images uploaded successfully")));
-                })
+                .flatMap(FilePartUtil::filePartToFile)
+                .flatMap(imageService::convertImage)
+                .flatMap(webp -> imageService.saveWebp(id, webp))
+                .then(Mono.just(ResponseEntity.ok("Files uploaded successfully")))
                 .onErrorResume(e -> {
                     log.error("Error uploading images: {}", e.getMessage(), e);
-                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload images"));
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
                 });
     }
 
     @PostMapping(value = "/images/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Mono<ResponseEntity<String>> save(@PathVariable Long id,
-                                             @RequestPart("images") List<FilePart> images){
-        if(images.size() > 10){
-            return Mono.just(ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Max 10 images allowed"));
+    public Mono<ResponseEntity<List<AdImage>>> save(@PathVariable Long id,
+                                                    @RequestPart("images") List<FilePart> images){
+        if (images.isEmpty() || images.size() > 10) {
+            return Mono.just(ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build());
         }
 
-        return null;
-//        return Flux.fromIterable(images)
-//                .flatMap(ImageUtil::filePartToFile)
-//                .map(f -> ImageUtil.isWebP(f))
-//                .map()
+        return FilePartUtil.filePartsToFiles(images)
+                .flatMap(imageService::convertImages)
+                .flatMapMany(Flux::fromIterable)
+                .flatMap(webpFile -> imageService.saveWebp(id, webpFile))
+                .collectList()
+                .map(ResponseEntity::ok)
+                .onErrorResume(e -> {
+                    log.error("Error uploading images: {}", e.getMessage(), e);
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                });
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

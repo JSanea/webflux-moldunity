@@ -1,34 +1,30 @@
 package web.app.webflux_moldunity;
 
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import web.app.webflux_moldunity.util.ImageConverterUtil;
-import web.app.webflux_moldunity.util.ImageUtil;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
 
 @SpringBootApplication
 @EnableScheduling
 public class WebfluxMoldunityApplication {
 	public static void main(String[] args) {
-		String heic = "/home/alx/Downloads/heic.heic";
-		String jpg = "/home/alx/Downloads/jpg.jpg";
-		String webp = "/home/alx/Downloads/webp.webp";
-		Path pathToFile = Path.of(heic);
-		File f = pathToFile.toFile();
-		System.out.println(f.getAbsolutePath());
-		boolean isHEIC = ImageUtil.isHEIC(pathToFile.toFile());
-		System.out.println("Is HEIC/HEIF: " + isHEIC);
+//		String heicPath = "/home/alx/Downloads/heic.heic";
+//		String heifPath = "/home/alx/Downloads/heif.heif";
+//		String jpgPath  = "/home/alx/Downloads/jpg.jpg";
+//		File heic = new File(heicPath);
+//		File heif = new File(heifPath);
+//		File jpg = new File(jpgPath);
+//
+//		List<File> files = new ArrayList<>(Arrays.asList(heic, heif, jpg));
+//
+//		ImageService.convertImages2(files).subscribe();
 
-		try {
-			ImageConverterUtil.convertHeicToJpg(heic, jpg, "80");
-			ImageConverterUtil.convertToWebp(jpg, webp, 80, 800, 600);
-		} catch (IOException | InterruptedException e) {
-			e.printStackTrace();
-		}
-
-		//SpringApplication.run(WebfluxMoldunityApplication.class, args);
+		SpringApplication.run(WebfluxMoldunityApplication.class, args);
+//
+//		try {
+//			Thread.sleep(10000);
+//		} catch (InterruptedException e) {
+//			throw new RuntimeException(e);
+//		}
 	}
 }

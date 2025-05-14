@@ -1,7 +1,9 @@
 package web.app.webflux_moldunity.service.image.s3;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
@@ -13,16 +15,15 @@ import web.app.webflux_moldunity.service.image.ReactiveUploadService;
 import java.io.File;
 import java.util.UUID;
 
+
+@Primary
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class S3UploadService implements ReactiveUploadService {
     @Value("${aws.s3.bucket}")
     private String bucket;
     private final S3AsyncClient asyncS3Client;
-
-    public S3UploadService(S3AsyncClient asyncS3Client) {
-        this.asyncS3Client = asyncS3Client;
-    }
 
     @Override
     public Mono<String> upload(Long adId, File file){
@@ -34,7 +35,7 @@ public class S3UploadService implements ReactiveUploadService {
         .thenReturn("https://" + bucket + ".s3.amazonaws.com/" + key)
         .onErrorResume(e -> {
             log.error("Failed to upload file to S3: {}", e.getMessage(), e);
-            return Mono.empty();
+            return Mono.error(new RuntimeException("Failed to upload file to S3", e));
         });
     }
 

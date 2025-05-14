@@ -12,7 +12,7 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
         super(principal.getAuthorities());
         this.token = token;
         this.principal = principal.getUsername();
-        setAuthenticated(false);
+        setAuthenticated(true);
     }
 
     @Override
