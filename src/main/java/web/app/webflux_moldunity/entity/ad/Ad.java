@@ -1,6 +1,7 @@
 package web.app.webflux_moldunity.entity.ad;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.r2dbc.spi.Row;
 import jakarta.validation.constraints.Min;
@@ -28,8 +29,8 @@ public class Ad {
     @NotEmpty private String title;
     @NotEmpty private String categoryName;
     @NotEmpty private String subcategoryName;
-    private String country;
-    private String location;
+    @NotEmpty private String country;
+    @NotEmpty private String location;
     private String description;
     @Min(value = 1, message = "Price must be greater than 0")
     private Integer price;
@@ -38,8 +39,9 @@ public class Ad {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime republishedAt;
-    private Long userId;
     private List<AdImage> adImages;
+    @JsonIgnore
+    private Long userId;
 
     public void setSubcategoryNameFromAdType(AdSubtype type) {
         this.subcategoryName = type.getSubcategoryName();

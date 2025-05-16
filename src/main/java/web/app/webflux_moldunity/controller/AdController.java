@@ -75,9 +75,10 @@ public class AdController {
 
     @GetMapping(value = "/ads/flux/{subcategory}", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public Flux<ResponseEntity<Ad>> findBySubcategory(@PathVariable String subcategory,
-                                                      @RequestParam Long page){
+                                                      @RequestParam Long page,
+                                                      @RequestParam(required = false) Map<String, List<String>> filter){
         return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(subcategory))
-                .flatMapMany(sub -> adService.findBySubcategoryDescByRepublishedAt(sub.getSubcategoryName(), page))
+                .flatMapMany(sub -> adService.findBySubcategory(sub.getSubcategoryName(), page, filter))
                 .map(ResponseEntity::ok)
                 .onErrorResume(e -> {
                     log.error("Error fetching Ad: ", e);
@@ -85,11 +86,12 @@ public class AdController {
                 });
     }
 
-    @GetMapping(value = "/ads/list/{subcategory}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/ads/list/{subcategory}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<List<Ad>>> getBySubcategory(@PathVariable String subcategory,
-                                                           @RequestParam Long page){
+                                                           @RequestParam Long page,
+                                                           @RequestBody(required = false) Map<String, List<String>> filter){
         return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(subcategory))
-                .flatMap(sub -> adService.getBySubcategoryDescByRepublishedAt(sub.getSubcategoryName(), page))
+                .flatMap(sub -> adService.getBySubcategory(sub.getSubcategoryName(), page, filter))
                 .map(ResponseEntity::ok)
                 .onErrorResume(e -> {
                     log.error("Error fetching Ad: ", e);
@@ -109,12 +111,13 @@ public class AdController {
     }
 
     @GetMapping(value = "/ads/metadata/{subcategory}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Map<String, Object>>> getSubcategoryMetadata(@PathVariable String subcategory) {
+    public Mono<ResponseEntity<Map<String, Long>>> getSubcategoryMetadata(@PathVariable String subcategory) {
         return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(subcategory))
                 .flatMap(sub -> adService.countBySubcategory(sub.getSubcategoryName()))
                 .map(total ->{
-                    Map<String, Object> metadata = new HashMap<>();
+                    Map<String, Long> metadata = new HashMap<>();
                     metadata.put("total", total);
+                    metadata.put("size", 50L);
                     return ResponseEntity.ok(metadata);
                 })
                 .onErrorResume(e -> {

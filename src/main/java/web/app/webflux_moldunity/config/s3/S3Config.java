@@ -25,7 +25,7 @@ public class S3Config {
     @Bean
     public S3AsyncClient s3AsyncClient() {
         SdkAsyncHttpClient sdkAsyncHttpClient = NettyNioAsyncHttpClient.builder()
-                .maxConcurrency(256)
+                .maxConcurrency(128)
                 .connectionAcquisitionTimeout(Duration.ofSeconds(5))
                 .connectionTimeout(Duration.ofSeconds(5))
                 .maxPendingConnectionAcquires(128)

@@ -18,9 +18,13 @@ import web.app.webflux_moldunity.entity.ad.AdWithImage;
 import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.exception.AdServiceException;
 import web.app.webflux_moldunity.exception.InvalidAdStructureException;
+import web.app.webflux_moldunity.filter.AdFilter;
+import web.app.webflux_moldunity.filter.FilterMap;
+import web.app.webflux_moldunity.filter.FilterQuery;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -29,6 +33,7 @@ public class AdService {
     private final R2dbcEntityTemplate r2dbcEntityTemplate;
     private final DatabaseClient databaseClient;
     private final TransactionalOperator tx;
+    private final FilterMap adFilter;
 
     public <S extends Subcategory> Mono<Ad> getById(Long id, Class<S> subcategoryType) {
         return r2dbcEntityTemplate.selectOne(Query.query(Criteria.where("id").is(id)), Ad.class)
@@ -48,7 +53,7 @@ public class AdService {
                         })
                 )
                 .onErrorResume(e -> {
-                    log.error("Error get Ad by id: {}", e.getMessage(), e);
+                    log.error("Error to get Ad by id: {}", e.getMessage(), e);
                     return Mono.error(new AdServiceException("Failed to get Ad by id"));
                 });
     }
@@ -57,26 +62,43 @@ public class AdService {
         return r2dbcEntityTemplate.selectOne(
                 Query.query(Criteria.where("ad_id").is(adId)),
                 subcategory
+        )
+        .onErrorResume(e -> {
+            log.error("Error to get subcategory by Ad id: {}", e.getMessage(), e);
+            return Mono.error(new AdServiceException("Failed to get Ad by id"));
+        });
+    }
+
+    public Flux<Ad> findBySubcategory(String subcategory, Long page, Map<String, List<String>> filter){
+        long limit = 50;
+        String sql;
+        FilterQuery fq;
+        DatabaseClient.GenericExecuteSpec execute;
+
+        if(filter == null || filter.isEmpty()){
+            sql = selectAdsWithImages() +
+                    """
+                    WHERE ads.subcategory_name = :subcategory
+                    ORDER BY ads.republished_at DESC
+                    LIMIT :limit OFFSET :offset
+                    """;
+            execute = databaseClient.sql(sql).bind("subcategory", subcategory);
+        }else{
+            AdFilter filterHandler = adFilter.getFilter(subcategory);
+            fq = filterHandler.createQuery(filter);
+            sql = selectAdsWithImages() + fq.sql() + "LIMIT :limit OFFSET :offset ";
+
+            execute = databaseClient.sql(sql).bindValues(fq.params());
+        }
+
+        return findAdsByCondition(execute
+                .bind("limit", limit)
+                .bind("offset", limit * (Math.max(page, 1L) - 1))
         );
     }
 
-    public Flux<Ad> findBySubcategoryDescByRepublishedAt(String subcategory, Long page){
-        String sql = baseSelectAdsWithImages() +
-                """
-                WHERE ads.subcategory_name = :subcategory
-                ORDER BY ads.republished_at DESC
-                LIMIT :limit OFFSET :offset
-                """;
-
-        long limit = 50;
-        return findAdsByCondition(databaseClient.sql(sql)
-                .bind("subcategory", subcategory)
-                .bind("limit", limit)
-                .bind("offset", limit * (Math.max(page, 1L) - 1)));
-    }
-
     public Flux<Ad> findByUsername(String username){
-        String sql = baseSelectAdsWithImages() +
+        String sql = selectAdsWithImages() +
                 """
                 WHERE ads.username = :username
                 """;
@@ -85,8 +107,8 @@ public class AdService {
                 .bind("username", username));
     }
 
-    public Mono<List<Ad>> getBySubcategoryDescByRepublishedAt(String subcategory, Long page){
-        return findBySubcategoryDescByRepublishedAt(subcategory, page).collectList();
+    public Mono<List<Ad>> getBySubcategory(String subcategory, Long page, Map<String, List<String>> filter){
+        return findBySubcategory(subcategory, page, filter).collectList();
     }
 
     public Mono<List<Ad>> getByUsername(String username) {
@@ -203,11 +225,11 @@ public class AdService {
     }
 
 
-    private String baseSelectAdsWithImages(){
+    private String selectAdsWithImages(){
         return String.format("""
                 %1$s FROM ads
                 LEFT JOIN ad_images ON ad_images.ad_id = ads.id
-                """, selectAdsWithImages());
+                """, baseSelectAdsWithImages());
     }
 
     private Flux<Ad> findAdsByCondition(DatabaseClient.GenericExecuteSpec executeSpec) {
@@ -237,7 +259,7 @@ public class AdService {
                 });
     }
 
-    private String selectAdsWithImages(){
+    private String baseSelectAdsWithImages(){
         return """
                 SELECT ads.id AS ads_id, ads.username, ads.offer_type, ads.title, ads.category_name, ads.subcategory_name,
                    ads.country, ads.location, ads.description, ads.price, ads.created_at AS ads_created_at, ads.updated_at,
