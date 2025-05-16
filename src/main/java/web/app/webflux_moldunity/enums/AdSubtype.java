@@ -3,7 +3,7 @@ package web.app.webflux_moldunity.enums;
 import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.entity.real_estate.Apartment;
 import web.app.webflux_moldunity.entity.real_estate.House;
-import web.app.webflux_moldunity.entity.transport.BusMiniBus;
+import web.app.webflux_moldunity.entity.transport.BusMinibus;
 import web.app.webflux_moldunity.entity.transport.Car;
 
 import java.util.Arrays;
@@ -12,7 +12,7 @@ import java.util.Optional;
 public enum AdSubtype {
     // ******************* Transport *******************
     CAR(100, "Car", Car.class),
-    BUS_MINIBUS(101, "Bus-Minibus", BusMiniBus.class),
+    BUS_MINIBUS(101, "Bus-Minibus", BusMinibus.class),
 
     // ******************* Real Estate *******************
     APARTMENT(200, "Apartment", Apartment.class),

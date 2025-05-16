@@ -67,5 +67,4 @@ public class FilterHandler {
         FilterHandler.multipleFilter(multipleFields, table, ctx);
         FilterHandler.rangeFilter(rangeFields, table, ctx);
     }
-
 }
