@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 @Slf4j
-public class ImageUtil {
+public class ImageFormatUtil {
     public static boolean isWebP(File file) {
         if (file == null || !file.exists() || !file.isFile()) {
             return false;

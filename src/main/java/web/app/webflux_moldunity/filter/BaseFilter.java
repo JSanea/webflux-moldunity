@@ -1,6 +1,5 @@
 package web.app.webflux_moldunity.filter;
 
-
 import web.app.webflux_moldunity.filter.ad.BaseAdFilter;
 
 import java.util.Collections;
@@ -14,7 +13,10 @@ public abstract class BaseFilter {
                                            Map<String, List<String>> filters,
                                            Consumer<FilterContext> extraFilterLogic) {
         if (filters == null || filters.isEmpty()) {
-            return new FilterQuery("WHERE 1=1 ORDER BY ads.republished_at DESC", "WHERE 1=1", Collections.emptyMap());
+            return new FilterQuery(
+                    "WHERE ads.subcategory_name = :subcategory AND republished_at >= NOW() - INTERVAL '30 days' ",
+                    "SELECT count(*) FROM ads WHERE subcategory_name = :subcategory AND republished_at >= NOW() - INTERVAL '30 days' ",
+                    Collections.emptyMap());
         }
 
         String joinSql = "INNER JOIN " + table + " ON ads.id = " + table + ".ad_id ";
@@ -26,6 +28,9 @@ public abstract class BaseFilter {
 
         BaseAdFilter.createFilter(ctx);
 
+        extraFilterLogic.accept(ctx);
+
+        whereSql.append("AND republished_at >= NOW() - INTERVAL '30 days' ");
         String sort = Sort.sortBy(filters.get("sort"));
 
         return new FilterQuery(
@@ -33,6 +38,5 @@ public abstract class BaseFilter {
                 countSql + joinSql + whereSql,
                 params
         );
-
     }
 }

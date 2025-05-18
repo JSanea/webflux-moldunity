@@ -8,12 +8,12 @@ import java.util.Map;
 
 @Component
 public class FilterMap {
-    private final Map<String, AdFilter> filterMap = Map.of(
+    private final Map<String, EntityFilter> filterMap = Map.of(
             "Car", new CarFilter(),
             "Bus-Minibus", new BusMinibusFilter()
     );
 
-    public AdFilter getFilter(String key){
+    public EntityFilter getFilter(String key){
         return filterMap.get(key);
     }
 }

@@ -9,7 +9,7 @@
             <fileNamePattern>${LOG_PATH}/app.%d{yyyy-MM-dd}.log</fileNamePattern>
 
             <!-- Keep 30 days of logs -->
-            <maxHistory>30</maxHistory>
+            <maxHistory>7</maxHistory>
 
             <!-- Optional size cap for all files -->
             <totalSizeCap>1GB</totalSizeCap>

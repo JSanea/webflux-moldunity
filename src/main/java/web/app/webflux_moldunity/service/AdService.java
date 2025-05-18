@@ -1,7 +1,8 @@
 package web.app.webflux_moldunity.service;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
@@ -12,24 +13,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import web.app.webflux_moldunity.dto.AdPage;
+import web.app.webflux_moldunity.dto.AdWithImage;
 import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.entity.ad.AdImage;
-import web.app.webflux_moldunity.entity.ad.AdWithImage;
 import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.exception.AdServiceException;
 import web.app.webflux_moldunity.exception.InvalidAdStructureException;
-import web.app.webflux_moldunity.filter.AdFilter;
+import web.app.webflux_moldunity.filter.EntityFilter;
 import web.app.webflux_moldunity.filter.FilterMap;
 import web.app.webflux_moldunity.filter.FilterQuery;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Slf4j
 public class AdService {
+    @Value("${page.limit}")
+    private Long limit;
     private final R2dbcEntityTemplate r2dbcEntityTemplate;
     private final DatabaseClient databaseClient;
     private final TransactionalOperator tx;
@@ -69,33 +74,81 @@ public class AdService {
         });
     }
 
-    public Flux<Ad> findBySubcategory(String subcategory, Long page, Map<String, List<String>> filter){
-        long limit = 50;
-        String sql;
-        FilterQuery fq;
+    public Mono<AdPage> findBySubcategoryAndFilter(String subcategory, Long page, Map<String, List<String>> filter){
+        //String sql;
+        String countSql;
+        EntityFilter filterHandler = adFilter.getFilter(subcategory);
+        FilterQuery fq = filterHandler.filter(filter);;
         DatabaseClient.GenericExecuteSpec execute;
+        DatabaseClient.GenericExecuteSpec countExec;
+        String sql = baseSelectAds() + fq.sql() + "LIMIT :limit OFFSET :offset ";
 
         if(filter == null || filter.isEmpty()){
-            sql = selectAdsWithImages() +
-                    """
-                    WHERE ads.subcategory_name = :subcategory
-                    ORDER BY ads.republished_at DESC
-                    LIMIT :limit OFFSET :offset
-                    """;
+            System.out.println(sql);
             execute = databaseClient.sql(sql).bind("subcategory", subcategory);
+            countExec = databaseClient.sql(fq.countSql()).bind("subcategory", subcategory);
         }else{
-            AdFilter filterHandler = adFilter.getFilter(subcategory);
-            fq = filterHandler.createQuery(filter);
-            sql = selectAdsWithImages() + fq.sql() + "LIMIT :limit OFFSET :offset ";
-
             execute = databaseClient.sql(sql).bindValues(fq.params());
+            countExec = databaseClient.sql(fq.countSql()).bindValues(fq.params());
+            log.debug("Params: {}", fq.params());
         }
 
-        return findAdsByCondition(execute
+
+        log.debug("SQL: {}", sql);
+
+        return execute
                 .bind("limit", limit)
                 .bind("offset", limit * (Math.max(page, 1L) - 1))
-        );
+                .map(((row, rowMetadata) -> Ad.mapRowToAd(row)))
+                .all()
+                .collectList()
+                .flatMap(ads -> {
+                    if (ads.isEmpty()) {
+                        return Mono.just(new AdPage(List.of(), 0L, page));
+                    }
+
+                    List<Long> adIds = ads.stream().map(Ad::getId).toList();
+
+                    return databaseClient.sql(String.format(
+                            """
+                            %1$s
+                             WHERE ad_id IN (:ids)
+                            """, baseSelectImages())
+                            )
+                            .bind("ids", adIds)
+                            .map((row, metadata) -> AdImage.mapRowToAdImage(row))
+                            .all()
+                            .collectList()
+                            .flatMap(images -> {
+                                Map<Long, List<AdImage>> groupedImages = images.stream()
+                                        .collect(Collectors.groupingBy(AdImage::getAdId));
+
+                                for (Ad ad : ads) {
+                                    ad.setAdImages(groupedImages.getOrDefault(ad.getId(), List.of()));
+                                }
+
+                                Mono<Long> count = countExec
+                                        .bindValues(fq.params())
+                                        .map((row, meta) -> row.get(0, Long.class))
+                                        .one();
+
+                                return Mono.zip(Mono.just(ads), count)
+                                        .map(tuple -> new AdPage(tuple.getT1(), tuple.getT2(), page));
+                            });
+                });
     }
+
+//    public Mono<AdPage> getBySubcategory(String subcategory, Long page, Map<String, List<String>> filter){
+//        return findBySubcategory(subcategory, page, filter)
+//                .collectList()
+//                .map(l -> {
+//                    Mono<Long> count = databaseClient.sql(filter.countSql())
+//                            .bindValues(query.params())
+//                            .map((row, meta) -> row.get(0, Long.class))
+//                            .one();
+//                    return new AdPage(l, null ,page);
+//                });
+//    }
 
     public Flux<Ad> findByUsername(String username){
         String sql = selectAdsWithImages() +
@@ -103,12 +156,8 @@ public class AdService {
                 WHERE ads.username = :username
                 """;
 
-        return findAdsByCondition(databaseClient.sql(sql)
+        return findAdsWithImagesByCondition(databaseClient.sql(sql)
                 .bind("username", username));
-    }
-
-    public Mono<List<Ad>> getBySubcategory(String subcategory, Long page, Map<String, List<String>> filter){
-        return findBySubcategory(subcategory, page, filter).collectList();
     }
 
     public Mono<List<Ad>> getByUsername(String username) {
@@ -118,6 +167,18 @@ public class AdService {
     public Mono<Long> getCountAdsByUsername(String username) {
         return databaseClient.sql("SELECT count(*) AS cnt FROM ads WHERE username = :username")
                 .bind("username", username)
+                .map((row, metadata) -> row.get("cnt", Long.class))
+                .one()
+                .onErrorResume(e -> {
+                    log.error("Error counting Ads by username: {}", e.getMessage(), e);
+                    return Mono.error(new AdServiceException("Failed to count Ads by username"));
+                });
+    }
+
+    public Mono<Long> getCountAdsByUsernameAndSubcategory(String username, String subcategory) {
+        return databaseClient.sql("SELECT count(*) AS cnt FROM ads WHERE username = :username AND subcategory_name = :subcategory")
+                .bind("username", username)
+                .bind("subcategory", subcategory)
                 .map((row, metadata) -> row.get("cnt", Long.class))
                 .one()
                 .onErrorResume(e -> {
@@ -138,9 +199,20 @@ public class AdService {
     }
 
     public Mono<Long> countBySubcategory(String subcategory) {
-        String sql = "SELECT COUNT(*) FROM ads WHERE subcategory_name = :subcategory";
+        String sql = "SELECT count(*) FROM ads WHERE subcategory_name = :subcategory";
         return databaseClient.sql(sql)
                 .bind("subcategory", subcategory)
+                .map(row -> row.get(0, Long.class))
+                .one();
+    }
+
+    public Mono<Long> countImages(Long adId){
+        String sql = "SELECT count(ads.id) FROM ads " +
+                "INNER JOIN ad_images ON ads.id = ad_images.ad_id " +
+                "WHERE ads.id = :id";
+
+        return databaseClient.sql(sql)
+                .bind("id", adId)
                 .map(row -> row.get(0, Long.class))
                 .one();
     }
@@ -198,9 +270,9 @@ public class AdService {
                 });
     }
 
-    public Mono<Ad> delete(Ad ad) {
+    public Mono<Ad> delete(Long adId) {
         return r2dbcEntityTemplate.select(Ad.class)
-                .matching(Query.query(Criteria.where("id").is(ad.getId())))
+                .matching(Query.query(Criteria.where("id").is(adId)))
                 .one()
                 .switchIfEmpty(Mono.error(new AdServiceException("Ad not found")))
                 .flatMap(existingAd ->
@@ -227,12 +299,12 @@ public class AdService {
 
     private String selectAdsWithImages(){
         return String.format("""
-                %1$s FROM ads
+                %1$s
                 LEFT JOIN ad_images ON ad_images.ad_id = ads.id
                 """, baseSelectAdsWithImages());
     }
 
-    private Flux<Ad> findAdsByCondition(DatabaseClient.GenericExecuteSpec executeSpec) {
+    private Flux<Ad> findAdsWithImagesByCondition(DatabaseClient.GenericExecuteSpec executeSpec) {
         return executeSpec.map((row, metadata) -> {
                     Ad ad = Ad.mapRowToAd(row);
                     AdImage adImage = AdImage.mapRowToAdImage(row);
@@ -266,7 +338,27 @@ public class AdService {
                    ads.republished_at, ads.user_id,
                    ad_images.id AS ad_images_id, ad_images.url AS ad_images_url, ad_images.created_at AS ad_images_created_at,
                    ad_images.ad_id AS ad_images_ad_id
+                   FROM ads
                 """;
+    }
+
+    private String baseSelectAds(){
+        return """
+                SELECT ads.id AS ads_id, ads.username, ads.offer_type, ads.title, ads.category_name, ads.subcategory_name,
+                   ads.country, ads.location, ads.description, ads.price, ads.created_at AS ads_created_at, ads.updated_at,
+                   ads.republished_at, ads.user_id
+                FROM ads
+                """;
+    }
+
+    private String baseSelectImages(){
+        return """
+                SELECT
+                ad_images.id AS ad_images_id, ad_images.url AS ad_images_url,
+                ad_images.created_at AS ad_images_created_at,
+                ad_images.ad_id AS ad_images_ad_id
+            FROM ad_images
+            """;
     }
 }
 

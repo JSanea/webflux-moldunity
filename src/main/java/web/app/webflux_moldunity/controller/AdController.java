@@ -7,31 +7,32 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import web.app.webflux_moldunity.dto.AdPage;
 import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.enums.AdSubtype;
 import web.app.webflux_moldunity.service.AdService;
 import web.app.webflux_moldunity.service.UserService;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
 @RestController
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Slf4j
 public class AdController {
+    @Value("${ads.subcategory.limit}")
+    private Long limit;
     private final AdService adService;
     private final UserService userService;
 
@@ -73,25 +74,14 @@ public class AdController {
                 });
     }
 
-    @GetMapping(value = "/ads/flux/{subcategory}", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Flux<ResponseEntity<Ad>> findBySubcategory(@PathVariable String subcategory,
-                                                      @RequestParam Long page,
-                                                      @RequestParam(required = false) Map<String, List<String>> filter){
+    @PostMapping(value = "/ads/{subcategory}",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<AdPage>> getBySubcategory(@PathVariable String subcategory,
+                                                         @RequestParam Long page,
+                                                         @RequestBody(required = false) Map<String, List<String>> filter){
         return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(subcategory))
-                .flatMapMany(sub -> adService.findBySubcategory(sub.getSubcategoryName(), page, filter))
-                .map(ResponseEntity::ok)
-                .onErrorResume(e -> {
-                    log.error("Error fetching Ad: ", e);
-                    return Flux.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
-                });
-    }
-
-    @PostMapping(value = "/ads/list/{subcategory}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<List<Ad>>> getBySubcategory(@PathVariable String subcategory,
-                                                           @RequestParam Long page,
-                                                           @RequestBody(required = false) Map<String, List<String>> filter){
-        return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(subcategory))
-                .flatMap(sub -> adService.getBySubcategory(sub.getSubcategoryName(), page, filter))
+                .flatMap(sub -> adService.findBySubcategoryAndFilter(sub.getSubcategoryName(), page, filter))
                 .map(ResponseEntity::ok)
                 .onErrorResume(e -> {
                     log.error("Error fetching Ad: ", e);
@@ -110,30 +100,20 @@ public class AdController {
                 });
     }
 
-    @GetMapping(value = "/ads/metadata/{subcategory}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Map<String, Long>>> getSubcategoryMetadata(@PathVariable String subcategory) {
-        return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(subcategory))
-                .flatMap(sub -> adService.countBySubcategory(sub.getSubcategoryName()))
-                .map(total ->{
-                    Map<String, Long> metadata = new HashMap<>();
-                    metadata.put("total", total);
-                    metadata.put("size", 50L);
-                    return ResponseEntity.ok(metadata);
+    @GetMapping(value = "/count/ads/{subcategory}")
+    public Mono<ResponseEntity<Long>> getCount(@PathVariable String subcategory){
+        return ReactiveSecurityContextHolder.getContext()
+                .map(ctx ->  (String)ctx.getAuthentication().getPrincipal())
+                .flatMap(username -> {
+                    var adSubtype = AdSubtype.fromSubcategoryName(subcategory);
+                    return adSubtype.isPresent() ?
+                            adService.getCountAdsByUsernameAndSubcategory(username, adSubtype.get().getSubcategoryName())
+                            : Mono.empty();
                 })
-                .onErrorResume(e -> {
-                    log.error("Error fetching Ad metadata", e);
-                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
-                });
-    }
-
-
-    @GetMapping(value = "/count/ads/{username}")
-    public Mono<ResponseEntity<Long>> getCount(@PathVariable String username){
-        return adService.getCountAdsByUsername(username)
                 .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.NO_CONTENT).body(0L)))
+                .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).build()))
                 .onErrorResume(e -> {
-                    log.error("Error get count: {}", e.getMessage(), e);
+                    log.error("Error to count Ads by username and subcategory: {}", e.getMessage(), e);
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
                 });
     }
@@ -164,10 +144,9 @@ public class AdController {
             return Mono.just(ResponseEntity.badRequest().build());
 
         return ReactiveSecurityContextHolder.getContext()
-                .map(ctx -> (UserDetails) ctx.getAuthentication().getPrincipal())
-                .map(UserDetails::getUsername)
-                .flatMap(username -> adService.getCountAdsByUsername(username)
-                        .filter(count -> count < 20)
+                .map(ctx ->  (String)ctx.getAuthentication().getPrincipal())
+                .flatMap(username -> adService.getCountAdsByUsernameAndSubcategory(username, ad.getSubcategoryName())
+                        .filter(count -> count < limit)
                         .flatMap(validUser -> userService.findUserByName(username))
                         .flatMap(user -> {
                             ad.setUsername(username);
@@ -191,12 +170,14 @@ public class AdController {
                 });
     }
 
-    @PutMapping(value = "/ads",
+    @PutMapping(value = "/edit/ads/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Ad>> update(@RequestBody Ad ad) {
-        if (ad.getSubcategory() == null)
+    public Mono<ResponseEntity<Ad>> update(@PathVariable Long id,
+                                           @RequestBody Ad ad) {
+        if (ad.getSubcategory() == null || !id.equals(ad.getId())) {
             return Mono.just(ResponseEntity.badRequest().build());
+        }
 
         return adService.isOwner(ad.getId())
                 .flatMap(owner -> owner
@@ -211,12 +192,11 @@ public class AdController {
                 });
     }
 
-    @DeleteMapping(value = "/ads",
+    @DeleteMapping(value = "/edit/ads/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Ad>> delete(@RequestBody Ad ad) {
-        return adService.isOwner(ad.getId())
-                .flatMap(owner -> owner ? adService.delete(ad) : Mono.empty())
+    public Mono<ResponseEntity<Ad>> delete(@PathVariable Long id) {
+        return adService.delete(id)
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).build()))
                 .onErrorResume(e -> {

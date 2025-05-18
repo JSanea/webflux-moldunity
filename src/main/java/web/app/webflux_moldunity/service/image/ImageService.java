@@ -9,7 +9,7 @@ import reactor.core.scheduler.Schedulers;
 import web.app.webflux_moldunity.entity.ad.AdImage;
 import web.app.webflux_moldunity.service.AdService;
 import web.app.webflux_moldunity.util.ImageConverterUtil;
-import web.app.webflux_moldunity.util.ImageUtil;
+import web.app.webflux_moldunity.util.ImageFormatUtil;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -54,10 +54,10 @@ public class ImageService {
                     // Categorize images
                     Map<String, List<File>> categorized = images.stream()
                             .collect(Collectors.groupingBy(file -> {
-                                if(ImageUtil.isHEIC(file)) return "heic";
-                                if(ImageUtil.isJPEG(file)) return "jpg";
-                                if(ImageUtil.isPNG(file))  return "png";
-                                if(ImageUtil.isWebP(file)) return "webp";
+                                if(ImageFormatUtil.isHEIC(file)) return "heic";
+                                if(ImageFormatUtil.isJPEG(file)) return "jpg";
+                                if(ImageFormatUtil.isPNG(file))  return "png";
+                                if(ImageFormatUtil.isWebP(file)) return "webp";
                                 return "other";
                             }));
 
@@ -162,15 +162,15 @@ public class ImageService {
             String outputWEBPPath = "/tmp/" + baseName + ".webp";
 
             return Mono.fromCallable(() -> {
-                        boolean heic = ImageUtil.isHEIC(f);
-                        boolean jpg  = ImageUtil.isJPEG(f);
-                        boolean png  = ImageUtil.isPNG(f);
-                        boolean webp = ImageUtil.isWebP(f);
+                        boolean heic = ImageFormatUtil.isHEIC(f);
+                        boolean jpg  = ImageFormatUtil.isJPEG(f);
+                        boolean png  = ImageFormatUtil.isPNG(f);
+                        boolean webp = ImageFormatUtil.isWebP(f);
 
                         if (heic) {
                             String outputJPG = "/tmp/" + baseName + ".jpg";
                             if (ImageConverterUtil.convertFromHeic(inputPath, outputJPG, 80)) {
-                                if (ImageConverterUtil.convertToWebp(outputJPG, outputWEBPPath, 80, 800, 600)) {
+                                if (ImageConverterUtil.convertToWebp(outputJPG, outputWEBPPath, 80, 960, 540)) {
                                     File fjpg = new File(outputJPG);
                                     if(!fjpg.delete()){
                                         log.warn("Error to delete output jpg file: " + outputJPG);

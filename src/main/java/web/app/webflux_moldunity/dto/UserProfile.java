@@ -1,4 +1,4 @@
-package web.app.webflux_moldunity.entity.user;
+package web.app.webflux_moldunity.dto;
 
 
 import java.time.LocalDateTime;

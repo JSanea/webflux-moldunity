@@ -34,7 +34,7 @@ public class Ad {
     private String description;
     @Min(value = 1, message = "Price must be greater than 0")
     private Integer price;
-    private Integer views = 0;
+    private Integer views;
     private Subcategory subcategory;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

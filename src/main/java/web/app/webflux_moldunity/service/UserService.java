@@ -11,9 +11,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.entity.user.Profile;
+import web.app.webflux_moldunity.dto.Profile;
+import web.app.webflux_moldunity.dto.UserProfile;
 import web.app.webflux_moldunity.entity.user.User;
-import web.app.webflux_moldunity.entity.user.UserProfile;
 import web.app.webflux_moldunity.exception.UserServiceException;
 
 @Service

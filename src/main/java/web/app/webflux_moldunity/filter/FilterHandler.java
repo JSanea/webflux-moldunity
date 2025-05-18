@@ -33,8 +33,8 @@ public class FilterHandler {
 
     public static void rangeFilter(List<String> fields, String table, FilterContext ctx) {
         for (String field : fields){
-            String fieldMin = field + "Min";
-            String fieldMax = field + "Max";
+            String fieldMin = field + "_min";
+            String fieldMax = field + "_max";
             List<String> min = ctx.filters().get(fieldMin);
             List<String> max = ctx.filters().get(fieldMax);
 
@@ -42,7 +42,7 @@ public class FilterHandler {
                 String value = min.get(0);
                 if(value != null && !value.trim().isEmpty() && !"null".equalsIgnoreCase(value.trim())){
                     ctx.whereSql().append("AND ").append(table).append(".").append(field)
-                            .append(" >= :").append(field).append("Min ");
+                            .append(" >= :").append(field).append("_min ");
                     ctx.params().put(fieldMin, Integer.parseInt(value));
                 }
             }
@@ -51,7 +51,7 @@ public class FilterHandler {
                 String value = max.get(0);
                 if(value != null && !value.trim().isEmpty() && !"null".equalsIgnoreCase(value.trim())){
                     ctx.whereSql().append("AND ").append(table).append(".").append(field)
-                            .append(" <= :").append(field).append("Max ");
+                            .append(" <= :").append(field).append("_max ");
                     ctx.params().put(fieldMax, Integer.parseInt(value));
                 }
             }

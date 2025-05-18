@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.entity.user.Profile;
+import web.app.webflux_moldunity.dto.Profile;
 import web.app.webflux_moldunity.service.UserService;
 
 @RestController
@@ -17,7 +17,6 @@ import web.app.webflux_moldunity.service.UserService;
 @Slf4j
 public class UserController {
     private final UserService userService;
-
 
     @GetMapping(value = "/profile/{username}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Profile>> getProfile(@PathVariable String username){
