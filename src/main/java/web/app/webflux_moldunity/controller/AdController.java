@@ -165,7 +165,18 @@ public class AdController {
                 )
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
                 .onErrorResume(e -> {
-                    log.error("Error saving Ad: ", e);
+                    log.error("Error saving Ad: {}", e.getMessage(), e);
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                });
+    }
+
+    @PostMapping(value = "/republish/ads/{id}")
+    public Mono<ResponseEntity<Ad>> republish(@PathVariable Long id){
+        return adService.republish(id)
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
+                .onErrorResume(e -> {
+                    log.error("Error to republish Ad: {}", e.getMessage(), e);
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
                 });
     }

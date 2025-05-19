@@ -24,6 +24,7 @@ import web.app.webflux_moldunity.filter.EntityFilter;
 import web.app.webflux_moldunity.filter.FilterMap;
 import web.app.webflux_moldunity.filter.FilterQuery;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -138,17 +139,80 @@ public class AdService {
                 });
     }
 
-//    public Mono<AdPage> getBySubcategory(String subcategory, Long page, Map<String, List<String>> filter){
-//        return findBySubcategory(subcategory, page, filter)
-//                .collectList()
-//                .map(l -> {
-//                    Mono<Long> count = databaseClient.sql(filter.countSql())
-//                            .bindValues(query.params())
-//                            .map((row, meta) -> row.get(0, Long.class))
-//                            .one();
-//                    return new AdPage(l, null ,page);
-//                });
-//    }
+    public <S extends Subcategory> Mono<Ad> save(Ad ad, Class<S> subcategoryType) {
+        ad.setDateTimeFields();
+        return r2dbcEntityTemplate.insert(Ad.class).using(ad)
+                .flatMap(savedAd -> {
+                    S subcategory = subcategoryType.cast(ad.getSubcategory());
+
+                    if (null == subcategory)
+                        return Mono.error(new InvalidAdStructureException("Ad subcategory must not be null"));
+
+                    subcategory.setAdId(savedAd.getId());
+
+                    return r2dbcEntityTemplate.insert(subcategoryType).using(subcategory)
+                            .flatMap(savedSubcategory -> {
+                                savedAd.setSubcategory(savedSubcategory);
+                                return Mono.just(savedAd);
+                            });
+                })
+                .as(tx::transactional)
+                .onErrorResume(e -> {
+                    log.error("Error inserting Ad: {}", e.getMessage(), e);
+                    return Mono.error(new AdServiceException("Failed to insert Ad"));
+                });
+    }
+
+    public <S extends Subcategory> Mono<Ad> update(Ad ad, Class<S> subcategory) {
+        return r2dbcEntityTemplate.select(Ad.class)
+                .matching(Query.query(Criteria.where("id").is(ad.getId())))
+                .one()
+                .switchIfEmpty(Mono.error(new AdServiceException("Ad with id " + ad.getId() + " not found")))
+                .flatMap(existingAd ->
+                        r2dbcEntityTemplate.update(existingAd.update(ad))
+                                .flatMap(updatedAd -> {
+                                    S s = subcategory.cast(ad.getSubcategory());
+                                    return r2dbcEntityTemplate.update(s).map(u -> updatedAd);
+                                })
+                )
+                .as(tx::transactional)
+                .onErrorResume(e -> {
+                    log.error("Error updating Ad: {}", e.getMessage(), e);
+                    return Mono.error(new AdServiceException("Failed to update Ad"));
+                });
+    }
+
+    public Mono<Ad> delete(Long adId) {
+        return r2dbcEntityTemplate.select(Ad.class)
+                .matching(Query.query(Criteria.where("id").is(adId)))
+                .one()
+                .switchIfEmpty(Mono.error(new AdServiceException("Ad with id " + adId + " not found")))
+                .flatMap(existingAd ->
+                        r2dbcEntityTemplate.delete(existingAd)
+                                .map(u -> existingAd)
+                )
+                .as(tx::transactional)
+                .onErrorResume(e -> {
+                    log.error("Error deleting Ad: {}", e.getMessage(), e);
+                    return Mono.error(new AdServiceException("Failed to delete Ad"));
+                });
+    }
+
+    public Mono<Ad> republish(Long adId){
+        return r2dbcEntityTemplate.select(Ad.class)
+                .matching(Query.query(Criteria.where("id").is(adId)))
+                .one()
+                .switchIfEmpty(Mono.error(new AdServiceException("Ad not found")))
+                .flatMap(existingAd -> {
+                    existingAd.setRepublishedAt(LocalDateTime.now());
+                    return r2dbcEntityTemplate.update(existingAd).thenReturn(existingAd);
+                })
+                .as(tx::transactional)
+                .onErrorResume(e -> {
+                    log.error("Error updating Ad: {}", e.getMessage(), e);
+                    return Mono.error(new AdServiceException("Failed to update Ad"));
+                });
+    }
 
     public Flux<Ad> findByUsername(String username){
         String sql = selectAdsWithImages() +
@@ -217,30 +281,6 @@ public class AdService {
                 .one();
     }
 
-    public <S extends Subcategory> Mono<Ad> save(Ad ad, Class<S> subcategoryType) {
-        ad.setDateTimeFields();
-        return r2dbcEntityTemplate.insert(Ad.class).using(ad)
-                .flatMap(savedAd -> {
-                    S subcategory = subcategoryType.cast(ad.getSubcategory());
-
-                    if (null == subcategory)
-                        return Mono.error(new InvalidAdStructureException("Ad subcategory must not be null"));
-
-                    subcategory.setAdId(savedAd.getId());
-
-                    return r2dbcEntityTemplate.insert(subcategoryType).using(subcategory)
-                            .flatMap(savedSubcategory -> {
-                                savedAd.setSubcategory(savedSubcategory);
-                                return Mono.just(savedAd);
-                            });
-                })
-                .as(tx::transactional)
-                .onErrorResume(e -> {
-                    log.error("Error inserting Ad: {}", e.getMessage(), e);
-                    return Mono.error(new AdServiceException("Failed to insert Ad"));
-                });
-    }
-
     public Mono<AdImage> saveImageUrl(AdImage image) {
         return r2dbcEntityTemplate
                 .insert(image)
@@ -248,41 +288,6 @@ public class AdService {
                 .onErrorResume(e -> {
                     log.error("Error saving image url: {}", e.getMessage(), e);
                     return Mono.error(new AdServiceException("Failed to save image url"));
-                });
-    }
-
-    public <S extends Subcategory> Mono<Ad> update(Ad ad, Class<S> subcategory) {
-        return r2dbcEntityTemplate.select(Ad.class)
-                .matching(Query.query(Criteria.where("id").is(ad.getId())))
-                .one()
-                .switchIfEmpty(Mono.error(new AdServiceException("Ad not found")))
-                .flatMap(existingAd ->
-                        r2dbcEntityTemplate.update(ad)
-                                .flatMap(updatedAd -> {
-                                    S s = subcategory.cast(ad.getSubcategory());
-                                    return r2dbcEntityTemplate.update(s).thenReturn(updatedAd);
-                                })
-                )
-                .as(tx::transactional)
-                .onErrorResume(e -> {
-                    log.error("Error updating Ad: {}", e.getMessage(), e);
-                    return Mono.error(new AdServiceException("Failed to update Ad"));
-                });
-    }
-
-    public Mono<Ad> delete(Long adId) {
-        return r2dbcEntityTemplate.select(Ad.class)
-                .matching(Query.query(Criteria.where("id").is(adId)))
-                .one()
-                .switchIfEmpty(Mono.error(new AdServiceException("Ad not found")))
-                .flatMap(existingAd ->
-                        r2dbcEntityTemplate.delete(existingAd)
-                                .thenReturn(existingAd)
-                )
-                .as(tx::transactional)
-                .onErrorResume(e -> {
-                    log.error("Error deleting Ad: {}", e.getMessage(), e);
-                    return Mono.error(new AdServiceException("Failed to delete Ad"));
                 });
     }
 

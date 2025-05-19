@@ -1,7 +1,6 @@
 package web.app.webflux_moldunity.entity.ad;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.r2dbc.spi.Row;
 import jakarta.validation.constraints.Min;
@@ -40,7 +39,6 @@ public class Ad {
     private LocalDateTime updatedAt;
     private LocalDateTime republishedAt;
     private List<AdImage> adImages;
-    @JsonIgnore
     private Long userId;
 
     public void setSubcategoryNameFromAdType(AdSubtype type) {
@@ -72,6 +70,15 @@ public class Ad {
                 .username(row.get("username", String.class))
                 .userId(row.get("user_id", Long.class))
                 .build();
+    }
+
+    public Ad update(Ad ad){
+        this.setOfferType(ad.getOfferType());
+        this.setTitle(ad.getTitle());
+        this.setCountry(ad.getCountry());
+        this.setDescription(ad.getDescription());
+        this.setPrice(ad.getPrice());
+        return this;
     }
 }
 
