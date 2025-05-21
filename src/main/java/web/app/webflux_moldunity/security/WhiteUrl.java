@@ -10,6 +10,8 @@ public final class WhiteUrl {
                 "/ads/**",
                 "/profile/**",
                 "/auth/refresh",
+                "/forgot-password",
+                "/reset-password",
                 "/is-authenticate",
                 "/v3/api-docs",
                 "/swagger-ui.html",

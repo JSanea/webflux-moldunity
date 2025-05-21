@@ -13,8 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.dto.AdPage;
-import web.app.webflux_moldunity.dto.AdWithImage;
+import web.app.webflux_moldunity.dto.ad.*;
 import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.entity.ad.AdImage;
 import web.app.webflux_moldunity.entity.ad.Subcategory;
@@ -24,6 +23,7 @@ import web.app.webflux_moldunity.filter.EntityFilter;
 import web.app.webflux_moldunity.filter.FilterMap;
 import web.app.webflux_moldunity.filter.FilterQuery;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,22 +41,16 @@ public class AdService {
     private final TransactionalOperator tx;
     private final FilterMap adFilter;
 
-    public <S extends Subcategory> Mono<Ad> getById(Long id, Class<S> subcategoryType) {
+    public <S extends Subcategory> Mono<AdDetailsWithImages> getById(Long id, Class<S> subcategoryType) {
         return r2dbcEntityTemplate.selectOne(Query.query(Criteria.where("id").is(id)), Ad.class)
                 .flatMap(ad -> r2dbcEntityTemplate
                         .selectOne(Query.query(Criteria.where("ad_id").is(ad.getId())), subcategoryType)
-                        .map(subcategory -> {
-                            ad.setSubcategory(subcategoryType.cast(subcategory));
-                            return ad;
-                        })
+                        .map(subcategory -> new AdDetailsWithImages(ad, subcategoryType.cast(subcategory), null))
                 )
                 .flatMap(adWithSubcategory -> r2dbcEntityTemplate
-                        .select(Query.query(Criteria.where("ad_id").is(adWithSubcategory.getId())), AdImage.class)
+                        .select(Query.query(Criteria.where("ad_id").is(adWithSubcategory.ad().getId())), AdImage.class)
                         .collectList()
-                        .map(images -> {
-                            adWithSubcategory.setAdImages(images);
-                            return adWithSubcategory;
-                        })
+                        .map(images -> new AdDetailsWithImages(adWithSubcategory.ad(), adWithSubcategory.subcategory(), images))
                 )
                 .onErrorResume(e -> {
                     log.error("Error to get Ad by id: {}", e.getMessage(), e);
@@ -76,8 +70,6 @@ public class AdService {
     }
 
     public Mono<AdPage> findBySubcategoryAndFilter(String subcategory, Long page, Map<String, List<String>> filter){
-        //String sql;
-        String countSql;
         EntityFilter filterHandler = adFilter.getFilter(subcategory);
         FilterQuery fq = filterHandler.filter(filter);;
         DatabaseClient.GenericExecuteSpec execute;
@@ -85,7 +77,6 @@ public class AdService {
         String sql = baseSelectAds() + fq.sql() + "LIMIT :limit OFFSET :offset ";
 
         if(filter == null || filter.isEmpty()){
-            System.out.println(sql);
             execute = databaseClient.sql(sql).bind("subcategory", subcategory);
             countExec = databaseClient.sql(fq.countSql()).bind("subcategory", subcategory);
         }else{
@@ -93,7 +84,6 @@ public class AdService {
             countExec = databaseClient.sql(fq.countSql()).bindValues(fq.params());
             log.debug("Params: {}", fq.params());
         }
-
 
         log.debug("SQL: {}", sql);
 
@@ -113,7 +103,7 @@ public class AdService {
                     return databaseClient.sql(String.format(
                             """
                             %1$s
-                             WHERE ad_id IN (:ids)
+                            WHERE ad_id IN (:ids)
                             """, baseSelectImages())
                             )
                             .bind("ids", adIds)
@@ -124,8 +114,9 @@ public class AdService {
                                 Map<Long, List<AdImage>> groupedImages = images.stream()
                                         .collect(Collectors.groupingBy(AdImage::getAdId));
 
+                                List<AdWithImages> adWithImages = new ArrayList<>();
                                 for (Ad ad : ads) {
-                                    ad.setAdImages(groupedImages.getOrDefault(ad.getId(), List.of()));
+                                    adWithImages.add(new AdWithImages(ad, groupedImages.getOrDefault(ad.getId(), List.of())));
                                 }
 
                                 Mono<Long> count = countExec
@@ -133,17 +124,17 @@ public class AdService {
                                         .map((row, meta) -> row.get(0, Long.class))
                                         .one();
 
-                                return Mono.zip(Mono.just(ads), count)
+                                return Mono.zip(Mono.just(adWithImages), count)
                                         .map(tuple -> new AdPage(tuple.getT1(), tuple.getT2(), page));
                             });
                 });
     }
 
-    public <S extends Subcategory> Mono<Ad> save(Ad ad, Class<S> subcategoryType) {
-        ad.setDateTimeFields();
-        return r2dbcEntityTemplate.insert(Ad.class).using(ad)
+    public <S extends Subcategory> Mono<AdDetails> save(AdDetails adDetails, Class<S> subcategoryType) {
+        adDetails.ad().setDateTimeFields();
+        return r2dbcEntityTemplate.insert(Ad.class).using(adDetails.ad())
                 .flatMap(savedAd -> {
-                    S subcategory = subcategoryType.cast(ad.getSubcategory());
+                    S subcategory = subcategoryType.cast(adDetails.subcategory());
 
                     if (null == subcategory)
                         return Mono.error(new InvalidAdStructureException("Ad subcategory must not be null"));
@@ -151,10 +142,7 @@ public class AdService {
                     subcategory.setAdId(savedAd.getId());
 
                     return r2dbcEntityTemplate.insert(subcategoryType).using(subcategory)
-                            .flatMap(savedSubcategory -> {
-                                savedAd.setSubcategory(savedSubcategory);
-                                return Mono.just(savedAd);
-                            });
+                            .flatMap(savedSubcategory -> Mono.just(new AdDetails(savedAd, savedSubcategory)));
                 })
                 .as(tx::transactional)
                 .onErrorResume(e -> {
@@ -163,15 +151,15 @@ public class AdService {
                 });
     }
 
-    public <S extends Subcategory> Mono<Ad> update(Ad ad, Class<S> subcategory) {
+    public <S extends Subcategory> Mono<Ad> update(AdDetails adDetails, Class<S> subcategory) {
         return r2dbcEntityTemplate.select(Ad.class)
-                .matching(Query.query(Criteria.where("id").is(ad.getId())))
+                .matching(Query.query(Criteria.where("id").is(adDetails.ad().getId())))
                 .one()
-                .switchIfEmpty(Mono.error(new AdServiceException("Ad with id " + ad.getId() + " not found")))
+                .switchIfEmpty(Mono.error(new AdServiceException("Ad with id " + adDetails.ad().getId() + " not found")))
                 .flatMap(existingAd ->
-                        r2dbcEntityTemplate.update(existingAd.update(ad))
+                        r2dbcEntityTemplate.update(existingAd.update(adDetails.ad()))
                                 .flatMap(updatedAd -> {
-                                    S s = subcategory.cast(ad.getSubcategory());
+                                    S s = subcategory.cast(adDetails.subcategory());
                                     return r2dbcEntityTemplate.update(s).map(u -> updatedAd);
                                 })
                 )
@@ -202,19 +190,22 @@ public class AdService {
         return r2dbcEntityTemplate.select(Ad.class)
                 .matching(Query.query(Criteria.where("id").is(adId)))
                 .one()
-                .switchIfEmpty(Mono.error(new AdServiceException("Ad not found")))
+                .switchIfEmpty(Mono.error(new AdServiceException("Ad with id " + adId + " not found")))
                 .flatMap(existingAd -> {
-                    existingAd.setRepublishedAt(LocalDateTime.now());
-                    return r2dbcEntityTemplate.update(existingAd).thenReturn(existingAd);
+                    if(!existingAd.getRepublishedAt().toLocalDate().equals(LocalDate.now())){
+                        existingAd.setRepublishedAt(LocalDateTime.now());
+                        return r2dbcEntityTemplate.update(existingAd).map(ad -> existingAd);
+                    }
+                    return Mono.empty();
                 })
                 .as(tx::transactional)
                 .onErrorResume(e -> {
                     log.error("Error updating Ad: {}", e.getMessage(), e);
-                    return Mono.error(new AdServiceException("Failed to update Ad"));
+                    return Mono.error(new AdServiceException("Failed to republish Ad"));
                 });
     }
 
-    public Flux<Ad> findByUsername(String username){
+    public Flux<AdWithImages> findByUsername(String username){
         String sql = selectAdsWithImages() +
                 """
                 WHERE ads.username = :username
@@ -224,7 +215,7 @@ public class AdService {
                 .bind("username", username));
     }
 
-    public Mono<List<Ad>> getByUsername(String username) {
+    public Mono<List<AdWithImages>> getByUsername(String username) {
         return findByUsername(username).collectList();
     }
 
@@ -309,7 +300,7 @@ public class AdService {
                 """, baseSelectAdsWithImages());
     }
 
-    private Flux<Ad> findAdsWithImagesByCondition(DatabaseClient.GenericExecuteSpec executeSpec) {
+    private Flux<AdWithImages> findAdsWithImagesByCondition(DatabaseClient.GenericExecuteSpec executeSpec) {
         return executeSpec.map((row, metadata) -> {
                     Ad ad = Ad.mapRowToAd(row);
                     AdImage adImage = AdImage.mapRowToAdImage(row);
@@ -327,8 +318,7 @@ public class AdService {
                             .filter(adImage -> adImage.getId() != null && adImage.getUrl() != null)
                             .toList();
 
-                    ad.setAdImages(images);
-                    return ad;
+                    return new AdWithImages(ad, images);
                 })
                 .onErrorResume(e -> {
                     log.error("Error fetching Ads: {}", e.getMessage(), e);

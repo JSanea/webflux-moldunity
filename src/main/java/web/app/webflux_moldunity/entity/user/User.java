@@ -3,7 +3,7 @@ package web.app.webflux_moldunity.entity.user;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.r2dbc.spi.Row;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,14 +22,14 @@ import java.time.LocalDateTime;
 public class User {
     @Id
     private Long id;
-    @NotEmpty private String username;
-    @NotEmpty private String password;
+    @NotBlank private String username;
+    @NotBlank private String password;
 
     @Email(regexp = "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,3}", message = "Invalid email")
-    @NotEmpty private String email;
-    @NotEmpty private String role;
-    @NotEmpty private String country;
-    @NotEmpty private String location;
+    @NotBlank private String email;
+    @NotBlank private String role;
+    @NotBlank private String country;
+    @NotBlank private String location;
     private String phone;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -48,7 +48,7 @@ public class User {
 
     public static User mapRowToUser(Row row){
         return User.builder()
-                //.id(row.get("id", Long.class))
+                .id(row.get("id", Long.class))
                 .username(row.get("username", String.class))
                 .password(row.get("password", String.class))
                 .email(row.get("email", String.class))

@@ -1,5 +1,6 @@
-package web.app.webflux_moldunity.controller;
+package web.app.webflux_moldunity.controller.auth;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,7 @@ public class SignUpController {
     @PostMapping(value = "/register",
                 consumes = MediaType.APPLICATION_JSON_VALUE,
                 produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<String>> confirmUserEmail(@RequestBody User user){
+    public Mono<ResponseEntity<String>> confirmUserEmail(@Valid @RequestBody User user){
         String normalizedUsername = user.getUsername().toLowerCase();
 
         if (RESERVED_USERNAMES.contains(normalizedUsername)) {
@@ -35,9 +36,12 @@ public class SignUpController {
                     .body("The username '" + user.getUsername() + "' is reserved and cannot be used."));
         }
 
-        return userService.findByUsernameOrEmail(user.getUsername(), user.getEmail())
+        String name = user.getUsername();
+        String mail = user.getEmail();
+
+        return userService.findByUsernameOrEmail(name, mail)
                 .map(u -> {
-                    if(user.getUsername().equals(u.getUsername()))
+                    if(name.equals(u.getUsername()))
                         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Username already exists");
 
                     return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Email already exists");

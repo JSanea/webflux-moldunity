@@ -1,5 +1,6 @@
 package web.app.webflux_moldunity.config.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
@@ -16,17 +17,14 @@ import web.app.webflux_moldunity.security.WhiteUrl;
 
 @Configuration
 @EnableWebFluxSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    public SecurityConfig(JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
-        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
-    }
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
                                                          ReactiveAuthenticationManager authenticationManager,
                                                          ServerAuthenticationConverter authenticationConverter) {
-
         AuthenticationWebFilter authWebFilter = new AuthenticationWebFilter(authenticationManager);
         authWebFilter.setServerAuthenticationConverter(authenticationConverter);
 

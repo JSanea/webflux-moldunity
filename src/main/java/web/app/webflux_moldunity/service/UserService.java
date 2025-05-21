@@ -14,7 +14,10 @@ import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.dto.Profile;
 import web.app.webflux_moldunity.dto.UserProfile;
 import web.app.webflux_moldunity.entity.user.User;
+import web.app.webflux_moldunity.enums.ChangePasswordStatus;
 import web.app.webflux_moldunity.exception.UserServiceException;
+
+import java.time.LocalDateTime;
 
 @Service
 @AllArgsConstructor
@@ -89,4 +92,66 @@ public class UserService {
             return Mono.error(new UserServiceException("Error to fetch profile by name"));
         });
     }
+
+    public Mono<ChangePasswordStatus> changePassword(String username, String currentPass, String newPass){
+        return findUserByName(username)
+                .switchIfEmpty(Mono.error(new RuntimeException("User not found")))
+                .flatMap(user -> {
+                    if(!passwordEncoder.matches(currentPass, user.getPassword())){
+                        return Mono.just(ChangePasswordStatus.INVALID_CURRENT_PASSWORD);
+                    }
+                    user.setPassword(passwordEncoder.encode(newPass));
+                    user.setUpdatedAt(LocalDateTime.now());
+                    return r2dbcEntityTemplate.update(user).thenReturn(ChangePasswordStatus.SUCCESS);
+                })
+                .onErrorResume(e -> {
+                    log.error("Error to change password: {}", e.getMessage(), e);
+                    return Mono.just(ChangePasswordStatus.ERROR);
+                });
+    }
+
+    public Mono<Boolean> resetPassword(String email, String password){
+        return r2dbcEntityTemplate.selectOne(
+                Query.query(Criteria.where(email).is(email)),
+                User.class
+        )
+        .switchIfEmpty(Mono.error(new RuntimeException("User not found by email: " + email)))
+        .flatMap(user -> {
+            user.setPassword(passwordEncoder.encode(password));
+            user.setUpdatedAt(LocalDateTime.now());
+            return r2dbcEntityTemplate.update(user).thenReturn(true);
+        })
+        .onErrorResume(e -> {
+            log.error("Error to reset password: {}", e.getMessage(), e);
+            return Mono.error(new RuntimeException("Error to reset password"));
+        });
+    }
+
+    public Mono<Boolean> existsEmail(String email){
+        return r2dbcEntityTemplate.exists(
+                Query.query(Criteria.where("email").is(email)),
+                User.class
+        )
+        .onErrorResume(e -> {
+            log.error("Error to check exists email: {}", e.getMessage(), e);
+            return Mono.error(new UserServiceException("Error to check exists email"));
+        });
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

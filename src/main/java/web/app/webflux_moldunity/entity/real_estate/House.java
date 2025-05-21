@@ -1,6 +1,5 @@
 package web.app.webflux_moldunity.entity.real_estate;
 
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,6 +13,6 @@ import web.app.webflux_moldunity.entity.ad.Subcategory;
 public class House implements Subcategory {
     @Id
     private Long id;
-    @NotEmpty private Integer floors;
+    @NotNull private Integer floors;
     @NotNull  private Long AdId;
 }

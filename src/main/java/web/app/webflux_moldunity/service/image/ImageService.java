@@ -186,7 +186,7 @@ public class ImageService {
                                 throw new RuntimeException("Failed HEIC to JPG conversion");
                             }
                         } else if (jpg || png || webp) {
-                            if (ImageConverterUtil.convertToWebp(inputPath, outputWEBPPath, 80, 800, 600)) {
+                            if (ImageConverterUtil.convertToWebp(inputPath, outputWEBPPath, 80, 960, 540)) {
                                 return new File(outputWEBPPath);
                             } else {
                                 log.error("Error converting to WebP: " + inputPath);

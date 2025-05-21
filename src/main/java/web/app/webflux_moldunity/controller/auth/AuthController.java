@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,7 +50,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Invalid credentials"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<String>> login(@RequestBody AuthRequest authRequest){
+    public Mono<ResponseEntity<String>> login(@Valid @RequestBody AuthRequest authRequest){
         return reactiveUserDetailsService.findByUsername(authRequest.username())
                 .filter(u -> passwordEncoder.matches(authRequest.password(), u.getPassword()))
                 .map(userDetails -> {

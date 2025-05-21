@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-import web.app.webflux_moldunity.dto.AdPage;
+import web.app.webflux_moldunity.dto.ad.AdDetails;
+import web.app.webflux_moldunity.dto.ad.AdDetailsWithImages;
+import web.app.webflux_moldunity.dto.ad.AdPage;
 import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.enums.AdSubtype;
@@ -62,8 +65,8 @@ public class AdController {
             }
     )
     @GetMapping(value = "/ads/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Ad>> getById(@PathVariable Long id,
-                                            @RequestParam(value = "type") String subtype) {
+    public Mono<ResponseEntity<AdDetailsWithImages>> getById(@PathVariable Long id,
+                                                             @RequestParam(value = "type") String subtype) {
         return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(subtype))
                 .flatMap(sub -> adService.getById(id, sub.getSubcategoryType()))
                 .map(ResponseEntity::ok)
@@ -100,10 +103,10 @@ public class AdController {
                 });
     }
 
-    @GetMapping(value = "/count/ads/{subcategory}")
+    @GetMapping(value = "/count/{subcategory}")
     public Mono<ResponseEntity<Long>> getCount(@PathVariable String subcategory){
         return ReactiveSecurityContextHolder.getContext()
-                .map(ctx ->  (String)ctx.getAuthentication().getPrincipal())
+                .map(ctx -> (String)ctx.getAuthentication().getPrincipal())
                 .flatMap(username -> {
                     var adSubtype = AdSubtype.fromSubcategoryName(subcategory);
                     return adSubtype.isPresent() ?
@@ -139,29 +142,30 @@ public class AdController {
             }
     )
     @PostMapping(value = "/ads", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Ad>> add(@RequestBody Ad ad) {
-        if (ad.getSubcategory() == null)
+    public Mono<ResponseEntity<AdDetails>> add(@Valid @RequestBody AdDetails adDetails) {
+        if (adDetails.subcategory() == null) {
             return Mono.just(ResponseEntity.badRequest().build());
+        }
 
         return ReactiveSecurityContextHolder.getContext()
-                .map(ctx ->  (String)ctx.getAuthentication().getPrincipal())
-                .flatMap(username -> adService.getCountAdsByUsernameAndSubcategory(username, ad.getSubcategoryName())
+                .map(ctx -> (String)ctx.getAuthentication().getPrincipal())
+                .flatMap(username -> adService.getCountAdsByUsernameAndSubcategory(username, adDetails.ad().getSubcategoryName())
                         .filter(count -> count < limit)
                         .flatMap(validUser -> userService.findUserByName(username))
                         .flatMap(user -> {
-                            ad.setUsername(username);
-                            ad.setUserId(user.getId());
+                            adDetails.ad().setUsername(username);
+                            adDetails.ad().setUserId(user.getId());
 
-                            if(ad.getCountry() == null)
-                                ad.setCountry(user.getCountry());
+                            if(adDetails.ad().getCountry() == null)
+                                adDetails.ad().setCountry(user.getCountry());
 
-                            if(ad.getLocation() == null)
-                                ad.setLocation(user.getLocation());
+                            if(adDetails.ad().getLocation() == null)
+                                adDetails.ad().setLocation(user.getLocation());
 
-                            return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(ad.getSubcategoryName()));
+                            return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(adDetails.ad().getSubcategoryName()));
                         })
-                        .flatMap(subcategory -> adService.save(ad, subcategory.getSubcategoryType()))
-                        .map(savedAd -> ResponseEntity.status(HttpStatus.CREATED).body(savedAd))
+                        .flatMap(subcategory -> adService.save(adDetails, subcategory.getSubcategoryType()))
+                        .map(savedAd -> ResponseEntity.status(HttpStatus.OK).body(savedAd))
                 )
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
                 .onErrorResume(e -> {
@@ -174,7 +178,7 @@ public class AdController {
     public Mono<ResponseEntity<Ad>> republish(@PathVariable Long id){
         return adService.republish(id)
                 .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
+                .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
                 .onErrorResume(e -> {
                     log.error("Error to republish Ad: {}", e.getMessage(), e);
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
@@ -185,16 +189,13 @@ public class AdController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Ad>> update(@PathVariable Long id,
-                                           @RequestBody Ad ad) {
-        if (ad.getSubcategory() == null || !id.equals(ad.getId())) {
+                                           @Valid @RequestBody AdDetails adDetails) {
+        if (adDetails.subcategory() == null || !id.equals(adDetails.ad().getId())) {
             return Mono.just(ResponseEntity.badRequest().build());
         }
 
-        return adService.isOwner(ad.getId())
-                .flatMap(owner -> owner
-                        ? Mono.justOrEmpty(AdSubtype.fromSubcategoryName(ad.getSubcategoryName()))
-                        : Mono.empty())
-                .flatMap(subcategory -> adService.update(ad, subcategory.getSubcategoryType()))
+        return  Mono.justOrEmpty(AdSubtype.fromSubcategoryName(adDetails.ad().getSubcategoryName()))
+                .flatMap(subcategory -> adService.update(adDetails, subcategory.getSubcategoryType()))
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
                 .onErrorResume(e -> {

@@ -1,10 +1,12 @@
 package web.app.webflux_moldunity.entity.ad;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.r2dbc.spi.Row;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,7 +15,6 @@ import org.springframework.data.relational.core.mapping.Table;
 import web.app.webflux_moldunity.enums.AdSubtype;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Setter
@@ -24,21 +25,20 @@ public class Ad {
     @Id
     private Long id;
     private String username;
-    @NotEmpty private String offerType;
-    @NotEmpty private String title;
-    @NotEmpty private String categoryName;
-    @NotEmpty private String subcategoryName;
-    @NotEmpty private String country;
-    @NotEmpty private String location;
+    @NotBlank private String offerType;
+    @NotBlank private String title;
+    @NotBlank private String categoryName;
+    @NotBlank private String subcategoryName;
+    @NotBlank private String country;
+    @NotBlank private String location;
     private String description;
     @Min(value = 1, message = "Price must be greater than 0")
-    private Integer price;
+    @NotNull private Integer price;
     private Integer views;
-    private Subcategory subcategory;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime republishedAt;
-    private List<AdImage> adImages;
+    @JsonIgnore
     private Long userId;
 
     public void setSubcategoryNameFromAdType(AdSubtype type) {
@@ -46,9 +46,7 @@ public class Ad {
     }
 
     public void setDateTimeFields() {
-        if(createdAt != null && updatedAt != null && republishedAt != null)
-            return;
-
+        if(createdAt != null && updatedAt != null && republishedAt != null) return;
         var t = LocalDateTime.now();
         this.createdAt = t;
         this.updatedAt = t;
@@ -78,6 +76,7 @@ public class Ad {
         this.setCountry(ad.getCountry());
         this.setDescription(ad.getDescription());
         this.setPrice(ad.getPrice());
+        this.setUpdatedAt(LocalDateTime.now());
         return this;
     }
 }
