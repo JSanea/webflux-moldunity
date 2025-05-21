@@ -42,7 +42,7 @@ public class FilterHandler {
                 String value = min.get(0);
                 if(value != null && !value.trim().isEmpty() && !"null".equalsIgnoreCase(value.trim())){
                     ctx.whereSql().append("AND ").append(table).append(".").append(field)
-                            .append(" >= :").append(field).append("_min ");
+                            .append(" >= :").append(fieldMin).append(" ");
                     ctx.params().put(fieldMin, Integer.parseInt(value));
                 }
             }
@@ -51,7 +51,7 @@ public class FilterHandler {
                 String value = max.get(0);
                 if(value != null && !value.trim().isEmpty() && !"null".equalsIgnoreCase(value.trim())){
                     ctx.whereSql().append("AND ").append(table).append(".").append(field)
-                            .append(" <= :").append(field).append("_max ");
+                            .append(" <= :").append(fieldMax).append(" ");
                     ctx.params().put(fieldMax, Integer.parseInt(value));
                 }
             }

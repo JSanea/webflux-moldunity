@@ -112,7 +112,7 @@ public class UserService {
 
     public Mono<Boolean> resetPassword(String email, String password){
         return r2dbcEntityTemplate.selectOne(
-                Query.query(Criteria.where(email).is(email)),
+                Query.query(Criteria.where("email").is(email)),
                 User.class
         )
         .switchIfEmpty(Mono.error(new RuntimeException("User not found by email: " + email)))

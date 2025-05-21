@@ -45,7 +45,7 @@ public class AdService {
         return r2dbcEntityTemplate.selectOne(Query.query(Criteria.where("id").is(id)), Ad.class)
                 .flatMap(ad -> r2dbcEntityTemplate
                         .selectOne(Query.query(Criteria.where("ad_id").is(ad.getId())), subcategoryType)
-                        .map(subcategory -> new AdDetailsWithImages(ad, subcategoryType.cast(subcategory), null))
+                        .map(subcategory -> new AdDetailsWithImages(ad, subcategoryType.cast(subcategory), List.of()))
                 )
                 .flatMap(adWithSubcategory -> r2dbcEntityTemplate
                         .select(Query.query(Criteria.where("ad_id").is(adWithSubcategory.ad().getId())), AdImage.class)

@@ -13,7 +13,7 @@ import java.io.File;
 public class LocalUploadService implements ReactiveUploadService{
     @Override
     public Mono<String> upload(Long adId, File file) {
-        return Mono.fromCallable(() -> {
+        return Mono.defer(() -> Mono.fromCallable(() -> {
             String storageDir = "/home/alx/Pictures";
             String originalFilename = file.getName();
             String newFilename = "ads_" + adId + "_" + originalFilename;
@@ -25,6 +25,6 @@ public class LocalUploadService implements ReactiveUploadService{
             java.nio.file.Files.copy(file.toPath(), destination.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
             return destination.getAbsolutePath();
-        }).subscribeOn(Schedulers.boundedElastic());
+        }).subscribeOn(Schedulers.boundedElastic()));
     }
 }

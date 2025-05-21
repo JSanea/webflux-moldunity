@@ -8,7 +8,7 @@
             <!-- Rotate daily -->
             <fileNamePattern>${LOG_PATH}/app.%d{yyyy-MM-dd}.log</fileNamePattern>
 
-            <!-- Keep 30 days of logs -->
+            <!-- Keep 7 days of logs -->
             <maxHistory>7</maxHistory>
 
             <!-- Optional size cap for all files -->
