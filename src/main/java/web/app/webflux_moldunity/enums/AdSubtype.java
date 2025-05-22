@@ -2,7 +2,7 @@ package web.app.webflux_moldunity.enums;
 
 import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.entity.real_estate.Apartment;
-import web.app.webflux_moldunity.entity.real_estate.House;
+import web.app.webflux_moldunity.entity.real_estate.Home;
 import web.app.webflux_moldunity.entity.transport.BusMinibus;
 import web.app.webflux_moldunity.entity.transport.Car;
 
@@ -16,7 +16,7 @@ public enum AdSubtype {
 
     // ******************* Real Estate *******************
     APARTMENT(200, "Apartment", Apartment.class),
-    HOUSE(    201, "House", House.class);
+    HOUSE(    201, "House", Home.class);
 
     // ******************* Home Appliances *******************
 //    HOME_APPLIANCES(300, "Home-Appliances", Object.class, subcategoryClassType),

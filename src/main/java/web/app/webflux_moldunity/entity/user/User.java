@@ -27,12 +27,13 @@ public class User {
 
     @Email(regexp = "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,3}", message = "Invalid email")
     @NotBlank private String email;
-    @NotBlank private String role;
     @NotBlank private String country;
     @NotBlank private String location;
+    private String role;
     private String phone;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime lastLoggedInAt;
 
     public User(String username, String password, String role) {
         this.username = username;

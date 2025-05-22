@@ -33,12 +33,12 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
+@RequestMapping(value = "/api")
 public class AdController {
     @Value("${ads.subcategory.limit}")
     private Long limit;
     private final AdService adService;
     private final UserService userService;
-
 
     @Tag(name = "Advertisements", description = "Endpoints for managing advertisements")
     @Operation(
@@ -141,7 +141,9 @@ public class AdController {
                     )
             }
     )
-    @PostMapping(value = "/ads", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/ads",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<AdDetails>> add(@Valid @RequestBody AdDetails adDetails) {
         if (adDetails.subcategory() == null) {
             return Mono.just(ResponseEntity.badRequest().build());

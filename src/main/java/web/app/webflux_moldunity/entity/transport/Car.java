@@ -2,7 +2,6 @@ package web.app.webflux_moldunity.entity.transport;
 
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,5 +17,5 @@ public class Car extends Vehicle implements Subcategory {
     @Id
     private Long id;
     @NotBlank private String body;
-    @NotNull  private Long AdId;
+    private Long AdId;
 }

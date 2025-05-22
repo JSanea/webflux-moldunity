@@ -47,9 +47,11 @@ public class ForgotPasswordService {
     }
 
     public Optional<ForgotPasswordRequest> getCredentials(Integer code){
-        var u = expiryCodes.get(code);
-        //expiryCodes.remove(code);
-        return u;
+        return expiryCodes.get(code);
+    }
+
+    public void remove(Integer code){
+        expiryCodes.remove(code);
     }
 }
 

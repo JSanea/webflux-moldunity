@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.service.UserService;
@@ -19,6 +20,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
+@RequestMapping(value = "/api")
 public class ForgotPasswordController {
     private final ForgotPasswordService forgotPasswordService;
     private final UserService userService;
@@ -40,14 +42,18 @@ public class ForgotPasswordController {
             return Mono.just(ResponseEntity.badRequest().body("Wrong request structure"));
         }
 
-        var x = forgotPasswordService.getCredentials(code.get("code"));
+        var c = code.get("code");
+        var x = forgotPasswordService.getCredentials(c);
 
         return Mono.justOrEmpty(x)
                 .flatMap(u -> userService.resetPassword(u.email(), u.password()))
-                .map(r -> r
-                        ? ResponseEntity.ok("Ok")
-                        : ResponseEntity.internalServerError().body("Error")
-                )
+                .map(result -> {
+                    if(result){
+                        forgotPasswordService.remove(c);
+                        return ResponseEntity.ok("Ok");
+                    }
+                    return ResponseEntity.internalServerError().body("Error");
+                })
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().body("Code is expired or wrong")))
                 .onErrorResume(e -> {
                     log.error("Error to reset password: {}", e.getMessage(), e);

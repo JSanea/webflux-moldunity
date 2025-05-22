@@ -16,5 +16,5 @@ public class BusMinibus extends Vehicle implements Subcategory{
     @Id
     private Long id;
     @NotNull private Integer numSeats;
-    @NotNull  private Long AdId;
+    private Long AdId;
 }

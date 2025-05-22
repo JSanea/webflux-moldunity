@@ -9,6 +9,7 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.cookie.CookieHandler;
@@ -19,6 +20,7 @@ import web.app.webflux_moldunity.service.password.ChangePasswordRequest;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
+@RequestMapping(value = "/api")
 public class ChangePasswordController {
     private final UserService userService;
     private final CookieHandler cookieHandler;

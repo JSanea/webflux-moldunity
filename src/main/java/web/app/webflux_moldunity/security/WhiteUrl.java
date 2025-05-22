@@ -5,14 +5,14 @@ public final class WhiteUrl {
 
     public static String[] urls(){
         return new String[]{
-                "/login",
-                "/register",
-                "/ads/**",
-                "/profile/**",
-                "/auth/refresh",
-                "/forgot-password",
-                "/reset-password",
-                "/is-authenticate",
+                "/api/login",
+                "/api/register",
+                "/api/ads/**",
+                "/api/profile/**",
+                "/api/auth/refresh",
+                "/api/forgot-password",
+                "/api/reset-password",
+                "/api/is-authenticate",
                 "/v3/api-docs",
                 "/swagger-ui.html",
                 "/swagger-ui/**",

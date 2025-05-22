@@ -10,9 +10,9 @@ import web.app.webflux_moldunity.entity.ad.Subcategory;
 @Getter
 @Setter
 @Table(value = "houses")
-public class House implements Subcategory {
+public class Home implements Subcategory {
     @Id
     private Long id;
     @NotNull private Integer floors;
-    @NotNull  private Long AdId;
+    private Long AdId;
 }

@@ -18,6 +18,7 @@ import java.util.Set;
 @RestController
 @AllArgsConstructor
 @Slf4j
+@RequestMapping(value = "/api")
 public class SignUpController {
     private final EmailConfirmationService emailConfirmationService;
     private final UserService userService;
@@ -38,6 +39,7 @@ public class SignUpController {
 
         String name = user.getUsername();
         String mail = user.getEmail();
+        user.setRole("USER");
 
         return userService.findByUsernameOrEmail(name, mail)
                 .map(u -> {

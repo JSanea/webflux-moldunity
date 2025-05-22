@@ -104,6 +104,7 @@ public class UserService {
                     user.setUpdatedAt(LocalDateTime.now());
                     return r2dbcEntityTemplate.update(user).thenReturn(ChangePasswordStatus.SUCCESS);
                 })
+                .as(tx::transactional)
                 .onErrorResume(e -> {
                     log.error("Error to change password: {}", e.getMessage(), e);
                     return Mono.just(ChangePasswordStatus.ERROR);
@@ -121,6 +122,7 @@ public class UserService {
             user.setUpdatedAt(LocalDateTime.now());
             return r2dbcEntityTemplate.update(user).thenReturn(true);
         })
+        .as(tx::transactional)
         .onErrorResume(e -> {
             log.error("Error to reset password: {}", e.getMessage(), e);
             return Mono.error(new RuntimeException("Error to reset password"));

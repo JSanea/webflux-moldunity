@@ -50,20 +50,20 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Invalid credentials"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<String>> login(@Valid @RequestBody AuthRequest authRequest){
+    public Mono<ResponseEntity<AuthResponse>> login(@Valid @RequestBody AuthRequest authRequest){
         return reactiveUserDetailsService.findByUsername(authRequest.username())
                 .filter(u -> passwordEncoder.matches(authRequest.password(), u.getPassword()))
                 .map(userDetails -> {
                     String accessToken = jwtTokenProvider.generateToken(userDetails);
                     String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
 
-                    ResponseCookie accessCookie  = cookieHandler.createCookie("access_token", accessToken, accessTokenMaxAge);
+                    //ResponseCookie accessCookie  = cookieHandler.createCookie("access_token", accessToken, accessTokenMaxAge);
                     ResponseCookie refreshCookie = cookieHandler.createCookie("refresh_token", refreshToken, refreshTokenMaxAge);
 
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                            .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                            .body("Success");
+                            //.header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                            .body(new AuthResponse(accessToken));
 
                 })
                 .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()))
@@ -75,10 +75,10 @@ public class AuthController {
 
     @GetMapping(value = "/logout")
     public Mono<ResponseEntity<Void>> logout(ServerHttpResponse response){
-        ResponseCookie accessCookie   = cookieHandler.createCookie("access_token", "", 0L);
+        //ResponseCookie accessCookie   = cookieHandler.createCookie("access_token", "", 0L);
         ResponseCookie responseCookie = cookieHandler.createCookie("refresh_token", "", 0L);
 
-        response.addCookie(accessCookie);
+        //response.addCookie(accessCookie);
         response.addCookie(responseCookie);
 
         return Mono.just(ResponseEntity.ok().build());
@@ -105,7 +105,7 @@ public class AuthController {
             }
     )
     @GetMapping(value = "/auth/refresh")
-    public Mono<ResponseEntity<String>> refreshToken(@CookieValue(name = "refresh_token", required = false) String refreshToken){
+    public Mono<ResponseEntity<AuthResponse>> refreshToken(@CookieValue(name = "refresh_token", required = false) String refreshToken){
         if (refreshToken == null) return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
 
         String username = jwtTokenProvider.extractUsername(refreshToken);
@@ -114,11 +114,10 @@ public class AuthController {
                 .filter(userDetails -> jwtTokenProvider.isTokenValid(refreshToken, userDetails))
                 .map(jwtTokenProvider::generateToken)
                 .map(accessToken -> {
-                    ResponseCookie accessCookie = cookieHandler.createCookie("access_token", accessToken, accessTokenMaxAge);
-
+                    //ResponseCookie accessCookie = cookieHandler.createCookie("access_token", accessToken, accessTokenMaxAge);
                     return ResponseEntity.ok()
-                            .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                            .body("Success");
+                            //.header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                            .body(new AuthResponse(accessToken));
                 })
                 .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()))
                 .onErrorResume(e ->{

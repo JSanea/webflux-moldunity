@@ -29,8 +29,8 @@ public class Ad {
     @NotBlank private String title;
     @NotBlank private String categoryName;
     @NotBlank private String subcategoryName;
-    @NotBlank private String country;
-    @NotBlank private String location;
+    private String country;
+    private String location;
     private String description;
     @Min(value = 1, message = "Price must be greater than 0")
     @NotNull private Integer price;
