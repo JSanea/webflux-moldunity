@@ -32,6 +32,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
+@RequestMapping(value = "/api")
 public class AuthController {
     @Value("${access-token.max-age}")
     private Long accessTokenMaxAge;

@@ -11,6 +11,7 @@
     <include file="src/main/resources/db/changelog/002-create-ad-table.sql" />
     <include file="src/main/resources/db/changelog/003-create-ad-images-table.sql" />
     <include file="src/main/resources/db/changelog/004-create-car-table.sql" />
+    <include file="src/main/resources/db/changelog/005-create-favorite-ads-table.sql"/>
 
     <include file="src/main/resources/db/changelog/ads-create-fulltext-index.xml" />
     <include file="src/main/resources/db/changelog/cars-create-fulltext-index.xml" />

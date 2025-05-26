@@ -2,7 +2,9 @@ package web.app.webflux_moldunity.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
@@ -41,26 +43,40 @@ public class AdService {
     private final DatabaseClient databaseClient;
     private final TransactionalOperator tx;
     private final FilterMap adFilter;
-    private final UserService userService;
+    private UserService userService;
+
+    @Autowired
+    public void setUserService(@Lazy UserService userService){
+        this.userService = userService;
+    }
 
     public <S extends Subcategory> Mono<AdDetailsWithImages> getById(Long id, Class<S> subcategoryType) {
+        System.out.println("get Ad by id");
         return r2dbcEntityTemplate.selectOne(Query.query(Criteria.where("id").is(id)), Ad.class)
-                .flatMap(ad -> r2dbcEntityTemplate
-                        .selectOne(Query.query(Criteria.where("ad_id").is(ad.getId())), subcategoryType)
-                        .map(subcategory -> new AdDetailsWithImages(new AdWithImages(ad, List.of(), false), subcategoryType.cast(subcategory)))
-                )
-                .flatMap(adWithSubcategory -> r2dbcEntityTemplate
-                        .select(Query.query(Criteria.where("ad_id").is(adWithSubcategory.ad().ad().getId())), AdImage.class)
-                        .collectList()
-                        .flatMap(images -> isFavorite(id)
-                                .map(favorite -> new AdDetailsWithImages(
-                                        new AdWithImages(adWithSubcategory.ad().ad(), images, favorite),
-                                        adWithSubcategory.subcategory()))
-                        )
-                )
+                .flatMap(ad -> {
+                    Mono<? extends Subcategory> subcategoryMono = r2dbcEntityTemplate
+                            .selectOne(Query.query(Criteria.where("ad_id").is(ad.getId())), subcategoryType);
+
+                    Mono<List<AdImage>> imagesMono = r2dbcEntityTemplate
+                            .select(Query.query(Criteria.where("ad_id").is(ad.getId())), AdImage.class)
+                            .collectList();
+
+                    Mono<Boolean> favoriteMono = isFavorite(id);
+
+                    return Mono.zip(subcategoryMono, imagesMono, favoriteMono)
+                            .map(tuple -> {
+                                Subcategory subcategory = tuple.getT1();
+                                List<AdImage> images = tuple.getT2();
+                                Boolean favorite = tuple.getT3();
+
+                                AdWithImages adWithImages = new AdWithImages(ad, images, favorite);
+                                return new AdDetailsWithImages(adWithImages, subcategoryType.cast(subcategory));
+                            });
+                })
                 .onErrorResume(e -> {
                     log.error("Error to get Ad by id: {}", e.getMessage(), e);
-                    return Mono.error(new AdServiceException("Failed to get Ad by id"));
+                    //return Mono.error(new AdServiceException("Failed to get Ad by id"));
+                    return Mono.empty();
                 });
     }
 
@@ -71,7 +87,8 @@ public class AdService {
         )
         .onErrorResume(e -> {
             log.error("Error to get subcategory by Ad id: {}", e.getMessage(), e);
-            return Mono.error(new AdServiceException("Failed to get Ad by id"));
+            //return Mono.error(new AdServiceException("Failed to get Ad by id"));
+            return Mono.empty();
         });
     }
 
@@ -88,9 +105,9 @@ public class AdService {
         }else{
             execute = databaseClient.sql(sql).bindValues(fq.params());
             countExec = databaseClient.sql(fq.countSql()).bindValues(fq.params());
-            log.debug("Params: {}", fq.params());
         }
 
+        log.debug("Params: {}", fq.params());
         log.debug("SQL: {}", sql);
 
         return execute
@@ -197,10 +214,15 @@ public class AdService {
 
     public Mono<List<Long>> findFavoriteIds(){
         return userService.getUser()
-                .flatMap(user -> findFavoriteIdsByUserId(user.getId()))
+                .flatMap(user -> {
+                    if (user == null || user.getId() == null) {
+                        return Mono.just(List.of(0L));
+                    }
+                    return findFavoriteIdsByUserId(user.getId());
+                })
                 .onErrorResume(e -> {
                     log.error("Error to get favorite ids: {}", e.getMessage(), e);
-                    return Mono.error(new AdServiceException("Error to get favorite ids"));
+                    return Mono.just(List.of());
                 });
     }
 
@@ -321,9 +343,17 @@ public class AdService {
 
     public Mono<Boolean> isFavorite(Long adId){
         return userService.getUser()
-                .flatMap(user -> r2dbcEntityTemplate.exists(Query.query(Criteria.where("ad_id").is(adId)
-                        .and(Criteria.where("user_id").is(user.getId()))), FavoriteAd.class)
-                );
+                .flatMap(user -> {
+                    if (user == null || user.getId() == null) {
+                        return Mono.just(false);
+                    }
+                    return r2dbcEntityTemplate.exists(Query.query(Criteria.where("ad_id").is(adId)
+                            .and(Criteria.where("user_id").is(user.getId()))), FavoriteAd.class);
+                })
+                .onErrorResume(e -> {
+                    log.error("Error checking favorite status for adId {}: {}", adId, e.getMessage(), e);
+                    return Mono.error(new RuntimeException("Error checking favorite status for adId"));
+                });
     }
 
     private String selectAdsWithImages(){

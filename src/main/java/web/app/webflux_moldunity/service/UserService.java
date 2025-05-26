@@ -3,6 +3,7 @@ package web.app.webflux_moldunity.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
@@ -29,7 +30,12 @@ public class UserService {
     private final DatabaseClient databaseClient;
     private final TransactionalOperator tx;
     private final PasswordEncoder passwordEncoder;
-    private final AdService adService;
+
+    private AdService adService;
+
+    public void setAdService(@Lazy AdService adService){
+        this.adService = adService;
+    }
 
     public Mono<User> findUserByName(String username) {
         return databaseClient.sql("SELECT * FROM users WHERE username = :username")
@@ -58,6 +64,7 @@ public class UserService {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .flatMap(auth -> findUserByName((String) auth.getPrincipal()))
+                .defaultIfEmpty(new User())
                 .onErrorResume(e -> {
                     log.error("Error to get user: {}", e.getMessage(), e);
                     return Mono.error(new RuntimeException("Error to get user"));
@@ -80,13 +87,11 @@ public class UserService {
                 Query.query(Criteria.where("username").is(name)),
                 User.class
         )
-        .map(x -> new UserProfile(
-                    x.getUsername(),
-                    x.getCountry(),
-                    x.getLocation(),
-                    x.getCreatedAt()
-            )
-        )
+        .map(u -> new UserProfile(
+                    u.getUsername(),
+                    u.getCountry(),
+                    u.getLocation(),
+                    u.getCreatedAt()))
         .flatMap(user -> adService.getByUsername(name).map(ads -> new Profile(user, ads)))
         .onErrorResume(e -> {
             log.error("Error to fetch profile by name: {}", e.getMessage(), e);
