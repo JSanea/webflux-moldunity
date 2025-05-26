@@ -158,11 +158,13 @@ public class AdController {
                             adDetails.ad().setUsername(username);
                             adDetails.ad().setUserId(user.getId());
 
-                            if(adDetails.ad().getCountry() == null)
+                            if(adDetails.ad().getCountry() == null) {
                                 adDetails.ad().setCountry(user.getCountry());
+                            }
 
-                            if(adDetails.ad().getLocation() == null)
+                            if(adDetails.ad().getLocation() == null) {
                                 adDetails.ad().setLocation(user.getLocation());
+                            }
 
                             return Mono.justOrEmpty(AdSubtype.fromSubcategoryName(adDetails.ad().getSubcategoryName()));
                         })

@@ -1,6 +1,6 @@
 package web.app.webflux_moldunity.entity.ad;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -10,16 +10,12 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@Table(value = "favorite_ads")
-public class FavoriteAd {
+@Table(name = "reports")
+public class AdReport {
     @Id
     private Long id;
-    @NotNull  private Long userId;
-    @NotNull  private Long adId;
-    @NotNull  private LocalDateTime createdAt;
+    @NotBlank private String reason;
+    private Long userId;
+    private Long adId;
+    private LocalDateTime createdAt;
 }
-
-
-
-
-

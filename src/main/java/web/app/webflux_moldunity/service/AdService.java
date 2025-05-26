@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 import web.app.webflux_moldunity.dto.ad.*;
 import web.app.webflux_moldunity.entity.ad.Ad;
 import web.app.webflux_moldunity.entity.ad.AdImage;
+import web.app.webflux_moldunity.entity.ad.FavoriteAd;
 import web.app.webflux_moldunity.entity.ad.Subcategory;
 import web.app.webflux_moldunity.exception.AdServiceException;
 import web.app.webflux_moldunity.exception.InvalidAdStructureException;
@@ -40,17 +41,22 @@ public class AdService {
     private final DatabaseClient databaseClient;
     private final TransactionalOperator tx;
     private final FilterMap adFilter;
+    private final UserService userService;
 
     public <S extends Subcategory> Mono<AdDetailsWithImages> getById(Long id, Class<S> subcategoryType) {
         return r2dbcEntityTemplate.selectOne(Query.query(Criteria.where("id").is(id)), Ad.class)
                 .flatMap(ad -> r2dbcEntityTemplate
                         .selectOne(Query.query(Criteria.where("ad_id").is(ad.getId())), subcategoryType)
-                        .map(subcategory -> new AdDetailsWithImages(ad, subcategoryType.cast(subcategory), List.of()))
+                        .map(subcategory -> new AdDetailsWithImages(new AdWithImages(ad, List.of(), false), subcategoryType.cast(subcategory)))
                 )
                 .flatMap(adWithSubcategory -> r2dbcEntityTemplate
-                        .select(Query.query(Criteria.where("ad_id").is(adWithSubcategory.ad().getId())), AdImage.class)
+                        .select(Query.query(Criteria.where("ad_id").is(adWithSubcategory.ad().ad().getId())), AdImage.class)
                         .collectList()
-                        .map(images -> new AdDetailsWithImages(adWithSubcategory.ad(), adWithSubcategory.subcategory(), images))
+                        .flatMap(images -> isFavorite(id)
+                                .map(favorite -> new AdDetailsWithImages(
+                                        new AdWithImages(adWithSubcategory.ad().ad(), images, favorite),
+                                        adWithSubcategory.subcategory()))
+                        )
                 )
                 .onErrorResume(e -> {
                     log.error("Error to get Ad by id: {}", e.getMessage(), e);
@@ -110,23 +116,26 @@ public class AdService {
                             .map((row, metadata) -> AdImage.mapRowToAdImage(row))
                             .all()
                             .collectList()
-                            .flatMap(images -> {
-                                Map<Long, List<AdImage>> groupedImages = images.stream()
-                                        .collect(Collectors.groupingBy(AdImage::getAdId));
+                            .flatMap(images -> findFavoriteIds()
+                                    .flatMap(favoriteIds -> {
+                                        Map<Long, List<AdImage>> groupedImages = images.stream()
+                                                .collect(Collectors.groupingBy(AdImage::getAdId));
 
-                                List<AdWithImages> adWithImages = new ArrayList<>();
-                                for (Ad ad : ads) {
-                                    adWithImages.add(new AdWithImages(ad, groupedImages.getOrDefault(ad.getId(), List.of())));
-                                }
+                                        List<AdWithImages> adWithImages = new ArrayList<>();
+                                        for (Ad ad : ads) {
+                                            adWithImages.add(new AdWithImages(
+                                                    ad,
+                                                    groupedImages.getOrDefault(ad.getId(), List.of()),
+                                                    favoriteIds.contains(ad.getId())));
+                                        }
+                                        Mono<Long> count = countExec
+                                                .bindValues(fq.params())
+                                                .map((row, meta) -> row.get(0, Long.class))
+                                                .one();
 
-                                Mono<Long> count = countExec
-                                        .bindValues(fq.params())
-                                        .map((row, meta) -> row.get(0, Long.class))
-                                        .one();
-
-                                return Mono.zip(Mono.just(adWithImages), count)
-                                        .map(tuple -> new AdPage(tuple.getT1(), tuple.getT2(), page));
-                            });
+                                        return Mono.zip(Mono.just(adWithImages), count)
+                                                .map(tuple -> new AdPage(tuple.getT1(), tuple.getT2(), page));
+                                    }));
                 });
     }
 
@@ -184,6 +193,24 @@ public class AdService {
                     log.error("Error deleting Ad: {}", e.getMessage(), e);
                     return Mono.error(new AdServiceException("Failed to delete Ad"));
                 });
+    }
+
+    public Mono<List<Long>> findFavoriteIds(){
+        return userService.getUser()
+                .flatMap(user -> findFavoriteIdsByUserId(user.getId()))
+                .onErrorResume(e -> {
+                    log.error("Error to get favorite ids: {}", e.getMessage(), e);
+                    return Mono.error(new AdServiceException("Error to get favorite ids"));
+                });
+    }
+
+    public Mono<List<Long>> findFavoriteIdsByUserId(Long userId){
+        return r2dbcEntityTemplate.select(
+                Query.query(Criteria.where("user_id").is(userId)),
+                FavoriteAd.class
+        )
+        .map(FavoriteAd::getId)
+        .collectList();
     }
 
     public Mono<Ad> republish(Long adId){
@@ -292,6 +319,12 @@ public class AdService {
                 });
     }
 
+    public Mono<Boolean> isFavorite(Long adId){
+        return userService.getUser()
+                .flatMap(user -> r2dbcEntityTemplate.exists(Query.query(Criteria.where("ad_id").is(adId)
+                        .and(Criteria.where("user_id").is(user.getId()))), FavoriteAd.class)
+                );
+    }
 
     private String selectAdsWithImages(){
         return String.format("""
@@ -318,8 +351,10 @@ public class AdService {
                             .filter(adImage -> adImage.getId() != null && adImage.getUrl() != null)
                             .toList();
 
-                    return new AdWithImages(ad, images);
+                    return new AdWithImages(ad, images, false);
                 })
+                .flatMap(a -> isFavorite(a.ad().getId())
+                        .map(result -> new AdWithImages(a.ad(), a.adImages(), result)))
                 .onErrorResume(e -> {
                     log.error("Error fetching Ads: {}", e.getMessage(), e);
                     return Flux.error(new AdServiceException("Failed to fetch Ads"));

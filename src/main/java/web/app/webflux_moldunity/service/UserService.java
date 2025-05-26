@@ -7,6 +7,8 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -52,14 +54,13 @@ public class UserService {
                 });
     }
 
-    public Mono<Long> findIdByUsername(String username) {
-        return databaseClient.sql("SELECT users.id AS id FROM users WHERE username = :username")
-                .bind("username", username)
-                .map((row, metadata) -> row.get("id", Long.class))
-                .one()
+    public Mono<User> getUser(){
+        return ReactiveSecurityContextHolder.getContext()
+                .map(SecurityContext::getAuthentication)
+                .flatMap(auth -> findUserByName((String) auth.getPrincipal()))
                 .onErrorResume(e -> {
-                    log.error("Error fetching user id by name: {}", e.getMessage(), e);
-                    return Mono.error(new RuntimeException("Failed to fetch user id by name"));
+                    log.error("Error to get user: {}", e.getMessage(), e);
+                    return Mono.error(new RuntimeException("Error to get user"));
                 });
     }
 
