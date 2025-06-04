@@ -127,7 +127,7 @@ public class AuthController {
                 });
     }
 
-    @GetMapping("/is-authenticate")
+    @GetMapping("/auth/status")
     public Mono<ResponseEntity<Map<String, Object>>> checkAuthentication() {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)

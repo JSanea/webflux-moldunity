@@ -33,10 +33,10 @@ public class ChangePasswordController {
                 .flatMap(username -> userService.changePassword(username, request.current(), request.fresh())
                         .map(status -> {
                             if(status == ChangePasswordStatus.SUCCESS){
-                                ResponseCookie accessCookie   = cookieHandler.createCookie("access_token", "", 0L);
+                                //ResponseCookie accessCookie   = cookieHandler.createCookie("access_token", "", 0L);
                                 ResponseCookie responseCookie = cookieHandler.createCookie("refresh_token", "", 0L);
 
-                                response.addCookie(accessCookie);
+                                //response.addCookie(accessCookie);
                                 response.addCookie(responseCookie);
                             }
                             return status;

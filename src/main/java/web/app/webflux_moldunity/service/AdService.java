@@ -51,7 +51,6 @@ public class AdService {
     }
 
     public <S extends Subcategory> Mono<AdDetailsWithImages> getById(Long id, Class<S> subcategoryType) {
-        System.out.println("get Ad by id");
         return r2dbcEntityTemplate.selectOne(Query.query(Criteria.where("id").is(id)), Ad.class)
                 .flatMap(ad -> {
                     Mono<? extends Subcategory> subcategoryMono = r2dbcEntityTemplate
@@ -162,8 +161,7 @@ public class AdService {
                 .flatMap(savedAd -> {
                     S subcategory = subcategoryType.cast(adDetails.subcategory());
 
-                    if (null == subcategory)
-                        return Mono.error(new InvalidAdStructureException("Ad subcategory must not be null"));
+                    if (null == subcategory) return Mono.error(new InvalidAdStructureException("Ad subcategory must not be null"));
 
                     subcategory.setAdId(savedAd.getId());
 
